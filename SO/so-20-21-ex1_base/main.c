@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
+#include <time.h>
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
@@ -135,9 +136,11 @@ void applyCommands(){
 int main(int argc, char* argv[]) {
     /* init filesystem */
     init_fs();
+    clock_t initTimer = clock();
     FILE *fp;
     FILE *out;
     fp = fopen(argv[1], "r");
+    
     if (fp == NULL){
         perror(argv[1]);
         exit(1);
@@ -150,5 +153,8 @@ int main(int argc, char* argv[]) {
 
     /* release allocated memory */
     destroy_fs();
+    clock_t endTimer = clock();
+    double timeSpent = (double)(endTimer - initTimer) / CLOCKS_PER_SEC;
+    printf("TecnicoFS completed in %0.4f seconds.\n", timeSpent);
     exit(EXIT_SUCCESS);
 }
