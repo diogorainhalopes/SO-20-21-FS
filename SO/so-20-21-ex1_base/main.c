@@ -166,7 +166,7 @@ int main(int argc, char* argv[]) {
 
     /*applyCommands();*/
 
-    for (i = 0; i != numberThreads; i++){
+    for (i = 0; i != numThreads; i++){
         pthread_join(tid[i], NULL);
     }
     print_tecnicofs_tree(out);
