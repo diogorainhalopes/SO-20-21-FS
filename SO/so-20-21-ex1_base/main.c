@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include "fs/operations.h"
 #include <time.h>
+#include <pthread.h>
+
 
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
@@ -82,7 +84,7 @@ void processInput(FILE *fp){
     }
 }
 
-void applyCommands(){
+void *applyCommands(){
     while (numberCommands > 0){
         const char* command = removeCommand();
         if (command == NULL){
@@ -131,14 +133,22 @@ void applyCommands(){
             }
         }
     }
+    return NULL;
 }
+
 
 int main(int argc, char* argv[]) {
     /* init filesystem */
     init_fs();
+    /* start timer */
     clock_t initTimer = clock();
     FILE *fp;
     FILE *out;
+
+    int numThreads = atoi(argv[3]);
+    int i;
+    pthread_t tid[numThreads];
+
     fp = fopen(argv[1], "r");
     
     if (fp == NULL){
@@ -148,11 +158,25 @@ int main(int argc, char* argv[]) {
     out = fopen(argv[2], "w");
     /* process input and print tree */
     processInput(fp);
-    applyCommands();
+    fclose(fp);
+
+    for (i = 0; i != numThreads; i++){
+        pthread_create(&tid[i], NULL, applyCommands, NULL);
+    }
+
+    /*applyCommands();*/
+
+    for (i = 0; i != numberThreads; i++){
+        pthread_join(tid[i], NULL);
+    }
     print_tecnicofs_tree(out);
 
     /* release allocated memory */
     destroy_fs();
+
+
+
+    /* end timer */
     clock_t endTimer = clock();
     double timeSpent = (double)(endTimer - initTimer) / CLOCKS_PER_SEC;
     printf("TecnicoFS completed in %0.4f seconds.\n", timeSpent);
