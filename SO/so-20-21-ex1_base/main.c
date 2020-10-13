@@ -11,6 +11,11 @@
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
+FILE* file_in; //input file
+FILE* file_out; //output file
+
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
 int numberThreads = 0;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
@@ -86,10 +91,13 @@ void processInput(FILE *fp){
 
 void *applyCommands(){
     while (numberCommands > 0){
+
+        pthread_mutex_lock(&lock);
         const char* command = removeCommand();
         if (command == NULL){
             continue;
         }
+        pthread_mutex_unlock(&lock);
 
         char token, type;
         char name[MAX_INPUT_SIZE];
@@ -138,38 +146,40 @@ void *applyCommands(){
 
 
 int main(int argc, char* argv[]) {
+    
+    file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
+    file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
+
     /* init filesystem */
     init_fs();
+    
     /* start timer */
     clock_t initTimer = clock();
-    FILE *fp;
-    FILE *out;
 
     int numThreads = atoi(argv[3]);
     int i;
+
     pthread_t tid[numThreads];
 
-    fp = fopen(argv[1], "r");
-    
-    if (fp == NULL){
+    if (file_in == NULL){
         perror(argv[1]);
         exit(1);
     }
-    out = fopen(argv[2], "w");
     /* process input and print tree */
-    processInput(fp);
-    fclose(fp);
+    processInput(file_in);
+    fclose(file_in);
 
     for (i = 0; i != numThreads; i++){
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
 
-    /*applyCommands();*/
+    //applyCommands();
 
     for (i = 0; i != numThreads; i++){
         pthread_join(tid[i], NULL);
-    }
-    print_tecnicofs_tree(out);
+    } 
+
+    print_tecnicofs_tree(file_out);
 
     /* release allocated memory */
     destroy_fs();

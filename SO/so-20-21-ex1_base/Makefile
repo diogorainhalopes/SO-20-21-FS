@@ -3,14 +3,14 @@
 
 CC   = gcc
 LD   = gcc
-CFLAGS =-Wall -pthread -std=gnu99 -I../
-LDFLAGS=-lm
+CFLAGS =-Wall -g  -std=gnu99 -I../
+LDFLAGS=-lm -pthread
 
 # A phony target is one that is not really the name of a file
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
 .PHONY: all clean run
 
-all: tecnicofs
+all: clean tecnicofs
 
 tecnicofs: fs/state.o fs/operations.o main.o
 	$(LD) $(CFLAGS) $(LDFLAGS) -o tecnicofs fs/state.o fs/operations.o main.o
