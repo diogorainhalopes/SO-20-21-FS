@@ -1,10 +1,11 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
 #include <ctype.h>
 #include "fs/operations.h"
-#include <time.h>
+#include <sys/time.h>
 #include <pthread.h>
 
 
@@ -14,7 +15,7 @@
 FILE* file_in; //input file
 FILE* file_out; //output file
 
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lockCommand = PTHREAD_MUTEX_INITIALIZER;
 
 int numberThreads = 0;
 
@@ -92,12 +93,12 @@ void processInput(FILE *fp){
 void *applyCommands(){
     while (numberCommands > 0){
 
-        pthread_mutex_lock(&lock);
+        pthread_mutex_lock(&lockCommand);
         const char* command = removeCommand();
         if (command == NULL){
             continue;
         }
-        pthread_mutex_unlock(&lock);
+        pthread_mutex_unlock(&lockCommand);
 
         char token, type;
         char name[MAX_INPUT_SIZE];
@@ -152,12 +153,32 @@ int main(int argc, char* argv[]) {
 
     /* init filesystem */
     init_fs();
-    
-    /* start timer */
-    clock_t initTimer = clock();
+
+    struct timeval start, end;
 
     int numThreads = atoi(argv[3]);
     int i;
+
+    if(!argv[4]){
+        fprintf(stderr, "Error: command invalid\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(strcmp(argv[4], "mutex") == 0){
+        pthread_mutex_t lock;
+        pthread_mutex_init (&lock, NULL);
+    }
+    else if(strcmp(argv[4], "rwlock") == 0){
+        pthread_rwlock_t rwl;
+        pthread_rwlock_init(&rwl, NULL);
+    }
+    else if(strcmp(argv[4], "nosyc") == 0){
+        numThreads = 1;
+    }
+    else{
+        fprintf(stderr, "Error: command invalid %s\n", argv[4]);
+        exit(EXIT_FAILURE);
+    }
 
     pthread_t tid[numThreads];
 
@@ -169,13 +190,16 @@ int main(int argc, char* argv[]) {
     processInput(file_in);
     fclose(file_in);
 
-    for (i = 0; i != numThreads; i++){
+    gettimeofday(&start, NULL);
+
+
+    for (i = 0; i < numThreads; i++){
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
 
     //applyCommands();
 
-    for (i = 0; i != numThreads; i++){
+    for (i = 0; i < numThreads; i++){
         pthread_join(tid[i], NULL);
     } 
 
@@ -184,11 +208,12 @@ int main(int argc, char* argv[]) {
     /* release allocated memory */
     destroy_fs();
 
-
+    gettimeofday(&end, NULL);
 
     /* end timer */
-    clock_t endTimer = clock();
-    double timeSpent = (double)(endTimer - initTimer) / CLOCKS_PER_SEC;
-    printf("TecnicoFS completed in %0.4f seconds.\n", timeSpent);
+    double timeTaken = (end.tv_sec + end.tv_usec / 1000000.0) -
+        (start.tv_sec + start.tv_usec / 1000000.0);
+    printf("TecnicoFS completed in %.4f seconds.\n", timeTaken);
+
     exit(EXIT_SUCCESS);
 }
