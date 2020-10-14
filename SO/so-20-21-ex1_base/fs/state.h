@@ -20,6 +20,10 @@
 #define MODE_FILE_READ "r"
 #define MODE_FILE_WRITE "w"
 
+int syncStrat = 0;
+
+
+
 
 /*
  * Contains the name of the entry and respective i-number

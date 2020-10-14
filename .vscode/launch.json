@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/SO/so-20-21-ex1_base/tecnicofs",
-            "args": ["inputs/test1.txt", "a.txt", "6",""],
+            "args": ["SO/so-20-21-ex1_base/inputs/test1.txt", "a.txt","6","mutex"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

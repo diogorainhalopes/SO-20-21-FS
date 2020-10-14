@@ -12,19 +12,90 @@
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
+#define MUTEX_STRATEGY 5
+#define RW_STRATEGY 6
+#define NOSYNC_STRATEGY 7
+
 FILE* file_in; //input file
 FILE* file_out; //output file
 
 pthread_mutex_t lock;
-pthread_rwlock_t rwl;
+pthread_rwlock_t rwlock;
 
 pthread_mutex_t lockCommand = PTHREAD_MUTEX_INITIALIZER;
 
 int numberThreads = 0;
 
+
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
+
+int setSyncStrat (char* argv[], int numThreads){
+
+    char *option = argv[4]; 
+
+    if(!option){
+        fprintf(stderr, "Error: command invalid\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(strcmp(option, "mutex") == 0){
+        syncStrat = MUTEX_STRATEGY;
+        pthread_mutex_init (&lock, NULL);
+        return 0;
+    }
+    else if(strcmp(option, "rwlock") == 0){
+        syncStrat = RW_STRATEGY;
+        pthread_rwlock_init(&rwlock, NULL);
+        return 0;
+    }
+    else if(strcmp(option, "nosync") == 0){
+        syncStrat = NOSYNC_STRATEGY;
+        return 0;
+    }
+    else{
+        fprintf(stderr, "Error: command invalid %s\n", option);
+        exit(EXIT_FAILURE);
+    }
+}
+
+void wLock(int Strat){
+    if (syncStrat == MUTEX_STRATEGY){
+        pthread_mutex_lock(&lock);
+    }
+    if (Strat == RW_STRATEGY){
+        pthread_rwlock_wrlock(&rwlock);
+    }
+    if(Strat == NOSYNC_STRATEGY){
+        return;
+    }
+}
+
+void rLock (int Strat){
+    if (syncStrat == MUTEX_STRATEGY){
+        pthread_mutex_lock(&lock);
+    }
+    if (Strat == RW_STRATEGY){
+        pthread_rwlock_rdlock(&rwlock);
+    }
+    if(Strat == NOSYNC_STRATEGY){
+        return;
+    }
+}
+
+void unlock (int Strat){
+    if (syncStrat == MUTEX_STRATEGY){
+        pthread_mutex_unlock(&lock);
+    }
+    if (Strat == RW_STRATEGY){
+        pthread_rwlock_unlock(&rwlock);
+    }
+    if(Strat == NOSYNC_STRATEGY){
+        return;
+    }
+}
+
 
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
@@ -116,48 +187,38 @@ void *applyCommands(){
             case 'c':
                 switch (type) {
                     case 'f':
-                        pthread_mutex_lock(&lock);
-                        pthread_rwlock_wrlock(&rwl);
+                        wLock(syncStrat);
                         printf("Create file: %s\n", name);
                         create(name, T_FILE);
-                        pthread_mutex_unlock(&lock);
-                        pthread_rwlock_unlock(&rwl);
+                        unlock(syncStrat);
                         break;
                     case 'd':
-                        pthread_mutex_lock(&lock);
-                        pthread_rwlock_wrlock(&rwl);
+                        wLock(syncStrat);
                         printf("Create directory: %s\n", name);
                         create(name, T_DIRECTORY);
-                        pthread_mutex_unlock(&lock);
-                        pthread_rwlock_unlock(&rwl);
+                        unlock(syncStrat);
                         break;
                     default:
-                        pthread_mutex_lock(&lock);
-                        pthread_rwlock_wrlock(&rwl);
+                        wLock(syncStrat);
                         fprintf(stderr, "Error: invalid node type\n");
-                        pthread_mutex_unlock(&lock);
-                        pthread_rwlock_unlock(&rwl);
+                        unlock(syncStrat);
                         exit(EXIT_FAILURE);
                 }
                 break;
             case 'l':
-                pthread_mutex_lock(&lock);
-                pthread_rwlock_rdlock(&rwl);
+                rLock(syncStrat);
                 searchResult = lookup(name);
-                pthread_mutex_unlock(&lock);
-                pthread_rwlock_unlock(&rwl);
+                unlock(syncStrat);
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
                     printf("Search: %s not found\n", name);
                 break;
             case 'd':
-                pthread_mutex_lock(&lock);
-                pthread_rwlock_wrlock(&rwl);
+                wLock(syncStrat);
                 printf("Delete: %s\n", name);
                 delete(name);
-                pthread_mutex_unlock(&lock);
-                pthread_rwlock_unlock(&rwl);
+                unlock(syncStrat);
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
@@ -169,10 +230,20 @@ void *applyCommands(){
 }
 
 
-int main(int argc, char* argv[]) {
+
+
+
+
+
+int main(int argc, char* argv[]){
     
     file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
+
+    if (file_in == NULL){
+        perror(argv[1]);
+        exit(1);
+    }
 
     /* init filesystem */
     init_fs();
@@ -182,33 +253,11 @@ int main(int argc, char* argv[]) {
     int numThreads = atoi(argv[3]);
     int i;
 
-    if(!argv[4]){
-        fprintf(stderr, "Error: command invalid\n");
-        exit(EXIT_FAILURE);
-    }
-
-    if(strcmp(argv[4], "mutex") == 0){
-        
-        pthread_mutex_init (&lock, NULL);
-    }
-    else if(strcmp(argv[4], "rwlock") == 0){
-
-        pthread_rwlock_init(&rwl, NULL);
-    }
-    else if(strcmp(argv[4], "nosync") == 0){
-        numThreads = 1;
-    }
-    else{
-        fprintf(stderr, "Error: command invalid %s\n", argv[4]);
-        exit(EXIT_FAILURE);
-    }
+    setSyncStrat(argv, numberThreads);
 
     pthread_t tid[numThreads];
 
-    if (file_in == NULL){
-        perror(argv[1]);
-        exit(1);
-    }
+    
     /* process input and print tree */
     processInput(file_in);
     fclose(file_in);
