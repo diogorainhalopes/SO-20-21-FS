@@ -15,6 +15,9 @@
 FILE* file_in; //input file
 FILE* file_out; //output file
 
+pthread_mutex_t lock;
+pthread_rwlock_t rwl;
+
 pthread_mutex_t lockCommand = PTHREAD_MUTEX_INITIALIZER;
 
 int numberThreads = 0;
@@ -113,28 +116,48 @@ void *applyCommands(){
             case 'c':
                 switch (type) {
                     case 'f':
+                        pthread_mutex_lock(&lock);
+                        pthread_rwlock_wrlock(&rwl);
                         printf("Create file: %s\n", name);
                         create(name, T_FILE);
+                        pthread_mutex_unlock(&lock);
+                        pthread_rwlock_unlock(&rwl);
                         break;
                     case 'd':
+                        pthread_mutex_lock(&lock);
+                        pthread_rwlock_wrlock(&rwl);
                         printf("Create directory: %s\n", name);
                         create(name, T_DIRECTORY);
+                        pthread_mutex_unlock(&lock);
+                        pthread_rwlock_unlock(&rwl);
                         break;
                     default:
+                        pthread_mutex_lock(&lock);
+                        pthread_rwlock_wrlock(&rwl);
                         fprintf(stderr, "Error: invalid node type\n");
+                        pthread_mutex_unlock(&lock);
+                        pthread_rwlock_unlock(&rwl);
                         exit(EXIT_FAILURE);
                 }
                 break;
-            case 'l': 
+            case 'l':
+                pthread_mutex_lock(&lock);
+                pthread_rwlock_rdlock(&rwl);
                 searchResult = lookup(name);
+                pthread_mutex_unlock(&lock);
+                pthread_rwlock_unlock(&rwl);
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
                     printf("Search: %s not found\n", name);
                 break;
             case 'd':
+                pthread_mutex_lock(&lock);
+                pthread_rwlock_wrlock(&rwl);
                 printf("Delete: %s\n", name);
                 delete(name);
+                pthread_mutex_unlock(&lock);
+                pthread_rwlock_unlock(&rwl);
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
@@ -165,14 +188,14 @@ int main(int argc, char* argv[]) {
     }
 
     if(strcmp(argv[4], "mutex") == 0){
-        pthread_mutex_t lock;
+        
         pthread_mutex_init (&lock, NULL);
     }
     else if(strcmp(argv[4], "rwlock") == 0){
-        pthread_rwlock_t rwl;
+
         pthread_rwlock_init(&rwl, NULL);
     }
-    else if(strcmp(argv[4], "nosyc") == 0){
+    else if(strcmp(argv[4], "nosync") == 0){
         numThreads = 1;
     }
     else{
