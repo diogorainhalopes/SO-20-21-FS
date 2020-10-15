@@ -12,25 +12,21 @@
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
-#define MUTEX_STRATEGY 5
-#define RW_STRATEGY 6
-#define NOSYNC_STRATEGY 7
-
 FILE* file_in; //input file
 FILE* file_out; //output file
 
-pthread_mutex_t lock;
-pthread_rwlock_t rwlock;
+
+struct timeval start, end;
 
 pthread_mutex_t lockCommand = PTHREAD_MUTEX_INITIALIZER;
-
-int numberThreads = 0;
-
+//extern pthread_mutex_t lock;
+//extern pthread_rwlock_t rwlock;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
 
+<<<<<<< HEAD
 int setSyncStrat (char* argv[], int numThreads){
 
     char *option = argv[4]; 
@@ -97,6 +93,8 @@ void unlock (int Strat){
     }
 }
 
+=======
+>>>>>>> 75a3ecd027f24f7a097accc2dd1f13bd1e862961
 
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
@@ -188,38 +186,38 @@ void *applyCommands(){
             case 'c':
                 switch (type) {
                     case 'f':
-                        wLock(syncStrat);
-                        printf("Create file: %s\n", name);
+                        wLock();
                         create(name, T_FILE);
-                        unlock(syncStrat);
+                        printf("Create file: %s\n", name);
+                        unlock();
                         break;
                     case 'd':
-                        wLock(syncStrat);
-                        printf("Create directory: %s\n", name);
+                        wLock();
                         create(name, T_DIRECTORY);
-                        unlock(syncStrat);
+                        printf("Create directory: %s\n", name);
+                        unlock();
                         break;
                     default:
-                        wLock(syncStrat);
+                        wLock();
+                        unlock();
                         fprintf(stderr, "Error: invalid node type\n");
-                        unlock(syncStrat);
                         exit(EXIT_FAILURE);
                 }
                 break;
             case 'l':
-                rLock(syncStrat);
+                rLock();
                 searchResult = lookup(name);
-                unlock(syncStrat);
+                unlock();
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
                     printf("Search: %s not found\n", name);
                 break;
             case 'd':
-                wLock(syncStrat);
-                printf("Delete: %s\n", name);
+                wLock();
                 delete(name);
-                unlock(syncStrat);
+                printf("Delete: %s\n", name);
+                unlock();
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
@@ -229,10 +227,6 @@ void *applyCommands(){
     }
     return NULL;
 }
-
-
-
-
 
 
 
@@ -249,12 +243,9 @@ int main(int argc, char* argv[]){
     /* init filesystem */
     init_fs();
 
-    struct timeval start, end;
-
-    int numThreads = atoi(argv[3]);
     int i;
 
-    setSyncStrat(argv, numberThreads);
+    int numThreads = setSyncStrat(argv);
 
     pthread_t tid[numThreads];
 
@@ -265,18 +256,19 @@ int main(int argc, char* argv[]){
 
     gettimeofday(&start, NULL);
 
-
+    printf(" s %d\n", numThreads);
     for (i = 0; i < numThreads; i++){
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
 
     //applyCommands();
-
+    
     for (i = 0; i < numThreads; i++){
         pthread_join(tid[i], NULL);
     } 
 
     print_tecnicofs_tree(file_out);
+    fclose(file_out);
 
     /* release allocated memory */
     destroy_fs();
@@ -287,6 +279,7 @@ int main(int argc, char* argv[]){
     double timeTaken = (end.tv_sec + end.tv_usec / 1000000.0) -
         (start.tv_sec + start.tv_usec / 1000000.0);
     printf("TecnicoFS completed in %.4f seconds.\n", timeTaken);
+
 
     exit(EXIT_SUCCESS);
 }

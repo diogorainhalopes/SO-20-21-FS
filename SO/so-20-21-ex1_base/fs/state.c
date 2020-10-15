@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "state.h"
 #include "../tecnicofs-api-constants.h"
 
@@ -230,5 +231,79 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
                 inode_print_tree(fp, inode_table[inumber].data.dirEntries[i].inumber, path);
             }
         }
+    }
+}
+
+
+
+int setSyncStrat(char* argv[]){
+
+    char *option = argv[4]; 
+    int n = atoi(argv[3]);
+
+    if(!option){
+        fprintf(stderr, "Error: command invalid sync\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if(strcmp(option, "mutex") == 0){
+        syncStrat = MUTEX_STRATEGY;
+        pthread_mutex_init (&lock, NULL);
+        return n;
+    }
+    else if(strcmp(option, "rwlock") == 0){
+        syncStrat = RW_STRATEGY;
+        pthread_rwlock_init(&rwlock, NULL);
+        return n;
+    }
+    else if(strcmp(option, "nosync") == 0){
+        syncStrat = NOSYNC_STRATEGY;
+        return 1;
+    }
+    else{
+        fprintf(stderr, "Error: command invalid %s\n", option);
+        exit(EXIT_FAILURE);
+    }
+}
+
+void wLock(){
+    if(syncStrat == MUTEX_STRATEGY){
+        pthread_mutex_lock(&lock);
+        return;
+    }
+    if(syncStrat == RW_STRATEGY){
+        pthread_rwlock_wrlock(&rwlock);
+        return;
+    }
+    if(syncStrat == NOSYNC_STRATEGY){
+        return;
+    }
+}
+
+void rLock(){
+    if(syncStrat == MUTEX_STRATEGY){
+        pthread_mutex_lock(&lock);
+        return;
+    }
+    if(syncStrat == RW_STRATEGY){
+        pthread_rwlock_rdlock(&rwlock);
+        return;
+    }
+    if(syncStrat == NOSYNC_STRATEGY){
+        return;
+    }
+}
+
+void unlock (){
+    if (syncStrat == MUTEX_STRATEGY){
+        pthread_mutex_unlock(&lock);
+        return;
+    }
+    if(syncStrat == RW_STRATEGY){
+        pthread_rwlock_unlock(&rwlock);
+        return;
+    }
+    if(syncStrat == NOSYNC_STRATEGY){
+        return;
     }
 }
