@@ -52,6 +52,7 @@ int setSyncStrat (char* argv[], int numThreads){
     }
     else if(strcmp(option, "nosync") == 0){
         syncStrat = NOSYNC_STRATEGY;
+        numberThreads =1;
         return 0;
     }
     else{
