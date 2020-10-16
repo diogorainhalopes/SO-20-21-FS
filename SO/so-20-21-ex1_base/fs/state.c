@@ -241,24 +241,22 @@ int setSyncStrat(char* argv[]){
     char *option = argv[4]; 
     int n = atoi(argv[3]);
 
-    if(!option){
-        fprintf(stderr, "Error: command invalid sync\n");
-        exit(EXIT_FAILURE);
-    }
-
+     /* lockCommand is initialized in both sync stratagies as mutex */
     if(strcmp(option, "mutex") == 0){
         syncStrat = MUTEX_STRATEGY;
-        pthread_mutex_init (&lock, NULL);
+        pthread_mutex_init(&lock, NULL);
+        pthread_mutex_init(&lockCommand, NULL);
         return n;
     }
     else if(strcmp(option, "rwlock") == 0){
         syncStrat = RW_STRATEGY;
         pthread_rwlock_init(&rwlock, NULL);
+        pthread_mutex_init(&lockCommand, NULL);   
         return n;
     }
-    else if(strcmp(option, "nosync") == 0){
+    else if(strcmp(option, "nosync") == 0 && n == 1){
         syncStrat = NOSYNC_STRATEGY;
-        return 1;
+        return n;
     }
     else{
         fprintf(stderr, "Error: command invalid %s\n", option);
@@ -294,7 +292,7 @@ void rLock(){
     }
 }
 
-void unlock (){
+void unlock(){
     if (syncStrat == MUTEX_STRATEGY){
         pthread_mutex_unlock(&lock);
         return;
