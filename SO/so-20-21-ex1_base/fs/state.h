@@ -31,7 +31,7 @@ int syncStrat;
 
 
 
-
+pthread_mutex_t lockCommand;
 pthread_mutex_t lock;
 pthread_rwlock_t rwlock;
 
@@ -77,6 +77,7 @@ int setSyncStrat(char* argv[]);
 void wLock();
 void rLock();
 void unlock();
+
 
 
 #endif /* INODES_H */

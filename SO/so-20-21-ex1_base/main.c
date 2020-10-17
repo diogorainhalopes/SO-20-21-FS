@@ -18,9 +18,6 @@ FILE* file_out; //output file
 
 struct timeval start, end;
 
-pthread_mutex_t lockCommand = PTHREAD_MUTEX_INITIALIZER;
-//extern pthread_mutex_t lock;
-//extern pthread_rwlock_t rwlock;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -165,22 +162,23 @@ int main(int argc, char* argv[]){
     
     file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
+    int i;
 
     if (file_in == NULL){
         perror(argv[1]);
         exit(1);
     }
 
+    if (file_out == NULL){
+        perror(argv[2]);
+        exit(1);
+    }
+
     /* init filesystem */
     init_fs();
-
-    int i;
-
     int numThreads = setSyncStrat(argv);
-
     pthread_t tid[numThreads];
 
-    
     /* process input and print tree */
     processInput(file_in);
     fclose(file_in);
@@ -203,14 +201,17 @@ int main(int argc, char* argv[]){
 
     /* release allocated memory */
     destroy_fs();
-
+    pthread_mutex_destroy(&lock);
+    pthread_mutex_destroy(&lockCommand);
+    pthread_rwlock_destroy(&rwlock);
     gettimeofday(&end, NULL);
 
     /* end timer */
-    double timeTaken = (end.tv_sec + end.tv_usec / 1000000.0) -
+    double timeReal = (end.tv_sec + end.tv_usec / 1000000.0) -
         (start.tv_sec + start.tv_usec / 1000000.0);
-    printf("TecnicoFS completed in %.4f seconds.\n", timeTaken);
+    printf("TecnicoFS completed in %.4f seconds.\n", timeReal);
 
 
     exit(EXIT_SUCCESS);
 }
+ 
