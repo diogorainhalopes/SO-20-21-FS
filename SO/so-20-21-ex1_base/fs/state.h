@@ -20,20 +20,7 @@
 #define MODE_FILE_READ "r"
 #define MODE_FILE_WRITE "w+"
 
-
-#define MUTEX_STRATEGY 5
-#define RW_STRATEGY 6
-#define NOSYNC_STRATEGY 7
-
-
-int syncStrat;
-
-
-
-
 pthread_mutex_t lockCommand;
-pthread_mutex_t lock;
-pthread_rwlock_t rwlock;
 
 
 /*
@@ -73,10 +60,6 @@ int dir_reset_entry(int inumber, int sub_inumber);
 int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
 
-int setSyncStrat(char* argv[]);
-void wLock();
-void rLock();
-void unlock();
 
 
 

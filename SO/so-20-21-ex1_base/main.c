@@ -16,6 +16,7 @@ FILE* file_in; //input file
 FILE* file_out; //output file
 
 
+
 struct timeval start, end;
 
 
@@ -114,38 +115,28 @@ void *applyCommands(){
             case 'c':
                 switch (type) {
                     case 'f':
-                        wLock();
                         create(name, T_FILE);
                         printf("Create file: %s\n", name);
-                        unlock();
                         break;
                     case 'd':
-                        wLock();
                         create(name, T_DIRECTORY);
                         printf("Create directory: %s\n", name);
-                        unlock();
                         break;
                     default:
-                        wLock();
-                        unlock();
                         fprintf(stderr, "Error: invalid node type\n");
                         exit(EXIT_FAILURE);
                 }
                 break;
             case 'l':
-                rLock();
                 searchResult = lookup(name);
-                unlock();
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
                     printf("Search: %s not found\n", name);
                 break;
             case 'd':
-                wLock();
                 delete(name);
                 printf("Delete: %s\n", name);
-                unlock();
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
@@ -163,8 +154,9 @@ int main(int argc, char* argv[]){
     file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
     int i;
-
-    if(argc != 5){
+    
+    pthread_mutex_init(&lockCommand, NULL);
+    if(argc != 4){
         errorParse();
     }
 
@@ -180,7 +172,8 @@ int main(int argc, char* argv[]){
 
     /* init filesystem */
     init_fs();
-    int numThreads = setSyncStrat(argv);
+    int numThreads = atoi(argv[4]);
+    printf("\n%d\n", numThreads);
     pthread_t tid[numThreads];
 
     /* process input and print tree */
@@ -189,7 +182,6 @@ int main(int argc, char* argv[]){
 
     gettimeofday(&start, NULL);
 
-    printf(" s %d\n", numThreads);
     for (i = 0; i < numThreads; i++){
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
@@ -205,9 +197,8 @@ int main(int argc, char* argv[]){
 
     /* release allocated memory */
     destroy_fs();
-    pthread_mutex_destroy(&lock);
+
     pthread_mutex_destroy(&lockCommand);
-    pthread_rwlock_destroy(&rwlock);
     gettimeofday(&end, NULL);
 
     /* end timer */
