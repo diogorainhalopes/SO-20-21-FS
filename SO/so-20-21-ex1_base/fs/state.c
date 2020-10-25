@@ -242,6 +242,10 @@ int setSyncStrat(char* argv[]){
     int n = atoi(argv[3]);
 
      /* lockCommand is initialized in both sync stratagies as mutex */
+    if (n<=0){
+        fprintf(stderr, "Error: command invalid\n");
+        exit(EXIT_FAILURE);
+    }
     if(strcmp(option, "mutex") == 0){
         syncStrat = MUTEX_STRATEGY;
         pthread_mutex_init(&lock, NULL);

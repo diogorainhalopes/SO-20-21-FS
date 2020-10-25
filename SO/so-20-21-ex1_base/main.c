@@ -164,6 +164,10 @@ int main(int argc, char* argv[]){
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
     int i;
 
+    if(argc != 5){
+        errorParse();
+    }
+
     if (file_in == NULL){
         perror(argv[1]);
         exit(1);
