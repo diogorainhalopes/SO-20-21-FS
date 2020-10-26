@@ -124,7 +124,7 @@ int create(char *name, type nodeType){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = lookup(parent_name);
+	parent_inumber = lookup(parent_name, LOOKWRITE);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to create %s, invalid parent dir %s\n",
@@ -181,7 +181,7 @@ int delete(char *name){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = lookup(parent_name);
+	parent_inumber = lookup(parent_name, LOOKWRITE);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to delete %s, invalid parent dir %s\n",
@@ -238,31 +238,40 @@ int delete(char *name){
  *  inumber: identifier of the i-node, if found
  *     FAIL: otherwise
  */
-int lookup(char *name) {
+int lookup(char *name, int lockmode) {
 	char full_path[MAX_FILE_NAME];
 	char delim[] = "/";
-
+	char *saveptr;
+	int dir_path[20];
+	int i = 0;
 	strcpy(full_path, name);
 
 	/* start at root node */
 	int current_inumber = FS_ROOT;
-
+	
 	/* use for copy */
 	type nType;
 	union Data data;
 
 	/* get root inode data */
-	inode_get(current_inumber, &nType, &data);
-
-	char *path = strtok(full_path, delim);
-
-	/* search for all sub nodes */
-	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
+	if(lockmode == LOOKONLY){
 		inode_get(current_inumber, &nType, &data);
-		path = strtok(NULL, delim);
+
+		char *path = strtok_r(full_path, delim, &saveptr);
+
+		/* search for all sub nodes */
+		while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
+			inode_get(current_inumber, &nType, &data);
+			path = strtok_r(NULL, delim, &saveptr);
+			dir_path[i] = current_inumber;
+			printf("%d,  %d\n", i, dir_path[i]);
+		}
 	}
 
 	return current_inumber;
+
+
+
 }
 
 
