@@ -172,7 +172,7 @@ int main(int argc, char* argv[]){
 
     /* init filesystem */
     init_fs();
-    int numThreads = atoi(argv[4]);
+    int numThreads = atoi(argv[3]);
     printf("\n%d\n", numThreads);
     pthread_t tid[numThreads];
 
