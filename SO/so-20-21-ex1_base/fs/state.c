@@ -25,6 +25,7 @@ void inode_table_init() {
         inode_table[i].nodeType = T_NONE;
         inode_table[i].data.dirEntries = NULL;
         inode_table[i].data.fileContents = NULL;
+        pthread_rwlock_init(&inode_table[i].rwlock, NULL);
     }
 }
 
@@ -56,8 +57,10 @@ int inode_create(type nType) {
     insert_delay(DELAY);
 
     for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++) {
+
         if (inode_table[inumber].nodeType == T_NONE) {
             inode_table[inumber].nodeType = nType;
+            pthread_rwlock_wrlock(&inode_table[inumber].rwlock);
 
             if (nType == T_DIRECTORY) {
                 /* Initializes entry table */
@@ -233,4 +236,3 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
         }
     }
 }
-
