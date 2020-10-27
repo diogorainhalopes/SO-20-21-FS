@@ -127,7 +127,7 @@ void *applyCommands(){
                 }
                 break;
             case 'l':
-                searchResult = lookup(name);
+                searchResult = lookup(name, LOOK);
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
@@ -170,13 +170,8 @@ int main(int argc, char* argv[]){
 
     /* init filesystem */
     init_fs();
-<<<<<<< HEAD
     int numThreads = atoi(argv[3]);
-    printf("\n%d\n", numThreads);
-=======
-    pthread_mutex_init(&lockCommand, NULL); //TODO A RETIRAR !!!!!
-    int numThreads = atoi(argv[3]);
->>>>>>> 172a124cd25ec44accd0a31396222c94b37f4eb6
+    //printf("\n%d\n", numThreads);
     pthread_t tid[numThreads];
 
     /* process input and print tree */

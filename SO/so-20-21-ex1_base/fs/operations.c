@@ -124,7 +124,7 @@ int create(char *name, type nodeType){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = lookup(parent_name);
+	parent_inumber = lookup(parent_name, CREATE_DELETE);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to create %s, invalid parent dir %s\n",
@@ -181,7 +181,7 @@ int delete(char *name){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = lookup(parent_name);
+	parent_inumber = lookup(parent_name, CREATE_DELETE);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to delete %s, invalid parent dir %s\n",
@@ -238,10 +238,10 @@ int delete(char *name){
  *  inumber: identifier of the i-node, if found
  *     FAIL: otherwise
  */
-int lookup(char *name) {
+int lookup(char *name, const int mode) {
 	char full_path[MAX_FILE_NAME];
+	char *saveptr;
 	char delim[] = "/";
-
 	strcpy(full_path, name);
 
 	/* start at root node */
@@ -252,15 +252,25 @@ int lookup(char *name) {
 	union Data data;
 
 	/* get root inode data */
+	//TODO:lock(current_inumber, READLOCK);//locks root node?
 	inode_get(current_inumber, &nType, &data);
 
-	char *path = strtok(full_path, delim);
+	char *path = strtok_r(full_path, delim, &saveptr);
 
 	/* search for all sub nodes */
 	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
 		inode_get(current_inumber, &nType, &data);
-		path = strtok(NULL, delim);
+		lock(current_inumber, READLOCK);//locks every node till last one in the path for read
+		path = strtok_r(NULL, delim, &saveptr); 
 	}
+
+	if (mode == LOOK){
+		lock(current_inumber, READLOCK);//locks last node for read
+	}
+	if (mode == CREATE_DELETE) {
+		lock(current_inumber, WRITELOCK);//locks last node for write
+	}
+
 
 	return current_inumber;
 }

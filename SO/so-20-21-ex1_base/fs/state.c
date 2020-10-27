@@ -6,8 +6,8 @@
 #include "state.h"
 #include "../tecnicofs-api-constants.h"
 
-inode_t inode_table[INODE_TABLE_SIZE];
 
+inode_t inode_table[INODE_TABLE_SIZE];
 
 /*
  * Sleeps for synchronization testing.
@@ -15,6 +15,8 @@ inode_t inode_table[INODE_TABLE_SIZE];
 void insert_delay(int cycles) {
     for (int i = 0; i < cycles; i++) {}
 }
+
+
 
 
 /*
@@ -234,5 +236,18 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
                 inode_print_tree(fp, inode_table[inumber].data.dirEntries[i].inumber, path);
             }
         }
+    }
+}
+
+
+/*
+ * locks nodes (lock type based on a given input)
+ */
+void lock(int iNumber, const int option){
+    if(option == READLOCK){
+        pthread_rwlock_rdlock(&inode_table[iNumber].rwlock);
+    }
+    if(option == WRITE){
+        pthread_rwlock_wrlock(&inode_table[iNumber].rwlock);
     }
 }
