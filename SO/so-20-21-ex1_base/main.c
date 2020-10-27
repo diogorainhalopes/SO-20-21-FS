@@ -16,7 +16,6 @@ FILE* file_in; //input file
 FILE* file_out; //output file
 
 
-
 struct timeval start, end;
 
 
@@ -154,8 +153,7 @@ int main(int argc, char* argv[]){
     file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
     int i;
-    
-    pthread_mutex_init(&lockCommand, NULL);
+
     if(argc != 4){
         errorParse();
     }
@@ -172,8 +170,13 @@ int main(int argc, char* argv[]){
 
     /* init filesystem */
     init_fs();
+<<<<<<< HEAD
     int numThreads = atoi(argv[3]);
     printf("\n%d\n", numThreads);
+=======
+    pthread_mutex_init(&lockCommand, NULL); //TODO A RETIRAR !!!!!
+    int numThreads = atoi(argv[3]);
+>>>>>>> 172a124cd25ec44accd0a31396222c94b37f4eb6
     pthread_t tid[numThreads];
 
     /* process input and print tree */
@@ -197,7 +200,6 @@ int main(int argc, char* argv[]){
 
     /* release allocated memory */
     destroy_fs();
-
     pthread_mutex_destroy(&lockCommand);
     gettimeofday(&end, NULL);
 

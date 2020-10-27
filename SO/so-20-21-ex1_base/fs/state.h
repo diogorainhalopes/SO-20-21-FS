@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../tecnicofs-api-constants.h"
+#include <pthread.h>
 
 /* FS root inode number */
 #define FS_ROOT 0
@@ -19,6 +20,7 @@
 
 #define MODE_FILE_READ "r"
 #define MODE_FILE_WRITE "w+"
+
 
 pthread_mutex_t lockCommand;
 
@@ -45,6 +47,7 @@ union Data {
 typedef struct inode_t {    
 	type nodeType;
 	union Data data;
+	pthread_rwlock_t rwlock;
     /* more i-node attributes will be added in future exercises */
 } inode_t;
 
