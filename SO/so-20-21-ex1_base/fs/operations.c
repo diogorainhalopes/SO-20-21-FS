@@ -252,15 +252,15 @@ int lookup(char *name, const int mode) {
 	union Data data;
 
 	/* get root inode data */
-	//TODO:lock(current_inumber, READLOCK);//locks root node?
+	lock(current_inumber, READLOCK);//locks root node
 	inode_get(current_inumber, &nType, &data);
 
 	char *path = strtok_r(full_path, delim, &saveptr);
 
 	/* search for all sub nodes */
 	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
-		inode_get(current_inumber, &nType, &data);
 		lock(current_inumber, READLOCK);//locks every node till last one in the path for read
+		inode_get(current_inumber, &nType, &data);
 		path = strtok_r(NULL, delim, &saveptr); 
 	}
 
