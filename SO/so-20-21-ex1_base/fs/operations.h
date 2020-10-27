@@ -2,6 +2,9 @@
 #define FS_H
 #include "state.h"
 
+#define LOOKWRITE 1
+#define LOOKONLY 2
+
 void init_fs();
 void destroy_fs();
 int is_dir_empty(DirEntry *dirEntries);

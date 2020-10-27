@@ -246,7 +246,7 @@ int lookup(char *name, const int mode) {
 
 	/* start at root node */
 	int current_inumber = FS_ROOT;
-
+	
 	/* use for copy */
 	type nType;
 	union Data data;
@@ -273,6 +273,9 @@ int lookup(char *name, const int mode) {
 
 
 	return current_inumber;
+
+
+
 }
 
 
