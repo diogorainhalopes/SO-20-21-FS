@@ -9,34 +9,57 @@
 #include <pthread.h>
 
 
-#define MAX_COMMANDS 150000
+#define MAX_COMMANDS 10
 #define MAX_INPUT_SIZE 100
+
 
 FILE* file_in; //input file
 FILE* file_out; //output file
 
-
 struct timeval start, end;
 
+pthread_mutex_t mutex;
+
+pthread_cond_t var_in;
+pthread_cond_t var_out;
+
+int end_game = 1;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
-
+int i_in = 0;
 
 int insertCommand(char* data) {
+    pthread_mutex_lock(&mutex);
+    pthread_t id = pthread_self();
+    if(end_game == EOF) pthread_exit(&id);
+
+    while (numberCommands == MAX_COMMANDS) pthread_cond_wait(&var_in, &mutex);
+
     if(numberCommands != MAX_COMMANDS) {
-        strcpy(inputCommands[numberCommands++], data);
+        strcpy(inputCommands[i_in++], data);
+        if (i_in == MAX_COMMANDS) i_in = 0;
+        numberCommands++;
+        pthread_cond_signal(&var_out);
+        pthread_mutex_unlock(&mutex);
         return 1;
     }
+    pthread_mutex_unlock(&mutex);
     return 0;
 }
 
 char* removeCommand() {
+    pthread_mutex_lock(&mutex);
+    while (numberCommands == 0) pthread_cond_wait(&var_out, &mutex);
     if(numberCommands > 0){
+        headQueue++; if (headQueue == MAX_COMMANDS) headQueue = 0;
         numberCommands--;
-        return inputCommands[headQueue++];  
+        pthread_cond_signal(&var_in);
+        pthread_mutex_unlock(&mutex);
+        return inputCommands[headQueue];  
     }
+    pthread_mutex_unlock(&mutex);
     return NULL;
 }
 
@@ -89,17 +112,15 @@ void processInput(FILE *fp){
             }
         }
     }
+    end_game = EOF;
 }
 
 void *applyCommands(){
     while (numberCommands > 0){
-
-        pthread_mutex_lock(&lockCommand);
         const char* command = removeCommand();
         if (command == NULL){
             continue;
         }
-        pthread_mutex_unlock(&lockCommand);
 
         char token, type;
         char name[MAX_INPUT_SIZE];
@@ -127,7 +148,7 @@ void *applyCommands(){
                 }
                 break;
             case 'l':
-                searchResult = lookup(name, LOOK);
+                searchResult = lookup(name);
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
@@ -154,6 +175,10 @@ int main(int argc, char* argv[]){
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
     int i;
 
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&var_in, NULL);
+    pthread_cond_init(&var_out, NULL);
+
     if(argc != 4){
         errorParse();
     }
@@ -175,14 +200,18 @@ int main(int argc, char* argv[]){
     pthread_t tid[numThreads];
 
     /* process input and print tree */
+    
     processInput(file_in);
+    for (i = 0; i < numThreads; i++){
+        
+        pthread_create(&tid[i], NULL, applyCommands, NULL);
+    }
+
+
     fclose(file_in);
 
     gettimeofday(&start, NULL);
 
-    for (i = 0; i < numThreads; i++){
-        pthread_create(&tid[i], NULL, applyCommands, NULL);
-    }
 
     //applyCommands();
     
@@ -195,7 +224,9 @@ int main(int argc, char* argv[]){
 
     /* release allocated memory */
     destroy_fs();
-    pthread_mutex_destroy(&lockCommand);
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&var_in);
+    pthread_cond_destroy(&var_out);
     gettimeofday(&end, NULL);
 
     /* end timer */

@@ -62,7 +62,7 @@ int inode_create(type nType) {
 
         if (inode_table[inumber].nodeType == T_NONE) {
             inode_table[inumber].nodeType = nType;
-            pthread_rwlock_wrlock(&inode_table[inumber].rwlock);
+            pthread_rwlock_init(&inode_table[inumber].rwlock, NULL);
 
             if (nType == T_DIRECTORY) {
                 /* Initializes entry table */
@@ -248,8 +248,15 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
 void lock(int iNumber, const int option){
     if(option == READLOCK){
         pthread_rwlock_rdlock(&inode_table[iNumber].rwlock);
+        return;
     }
     if(option == WRITE){
         pthread_rwlock_wrlock(&inode_table[iNumber].rwlock);
+        return;
     }
+}
+
+void unlock(int iNumber){
+    pthread_rwlock_unlock(&inode_table[iNumber].rwlock);
+    return;
 }
