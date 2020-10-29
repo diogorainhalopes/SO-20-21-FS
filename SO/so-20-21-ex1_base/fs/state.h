@@ -24,12 +24,10 @@
 #define READLOCK 1
 #define WRITELOCK 2
 
-#define LOOK 3
-#define CREATE_DELETE 4
 
 
 
-pthread_mutex_t lockCommand;
+
 
 
 /*
@@ -69,7 +67,8 @@ int inode_set_file(int inumber, char *fileContents, int len);
 int dir_reset_entry(int inumber, int sub_inumber);
 int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
-void lock (int iNumber, const int option);
+void lock (int inumber, const int option);
+void unlock(int inumber);
 
 
 

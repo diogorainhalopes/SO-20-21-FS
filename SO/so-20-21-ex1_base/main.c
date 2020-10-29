@@ -9,34 +9,56 @@
 #include <pthread.h>
 
 
-#define MAX_COMMANDS 150000
+#define MAX_COMMANDS 10
 #define MAX_INPUT_SIZE 100
+
 
 FILE* file_in; //input file
 FILE* file_out; //output file
 
-
 struct timeval start, end;
 
+pthread_mutex_t mutex;
+
+pthread_cond_t var_in;
+pthread_cond_t var_out;
+int numT_var;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
-
+int i_in = 0;
 
 int insertCommand(char* data) {
+    pthread_mutex_lock(&mutex);
+
+    while (numberCommands == MAX_COMMANDS) pthread_cond_wait(&var_in, &mutex);
+
     if(numberCommands != MAX_COMMANDS) {
-        strcpy(inputCommands[numberCommands++], data);
+        strcpy(inputCommands[i_in++], data);
+        if (i_in == MAX_COMMANDS) i_in = 0;
+        numberCommands++;
+        pthread_cond_signal(&var_out);
+        pthread_mutex_unlock(&mutex);
         return 1;
     }
+    pthread_mutex_unlock(&mutex);
     return 0;
 }
 
 char* removeCommand() {
+    pthread_mutex_lock(&mutex);
+    char* carry;
+    while (numberCommands == 0) pthread_cond_wait(&var_out, &mutex);
     if(numberCommands > 0){
         numberCommands--;
-        return inputCommands[headQueue++];  
+        carry = strdup(inputCommands[headQueue]);
+        headQueue++; if (headQueue == MAX_COMMANDS) headQueue = 0;
+        pthread_cond_signal(&var_in);
+        pthread_mutex_unlock(&mutex);
+        return carry;  
     }
+    pthread_mutex_unlock(&mutex);
     return NULL;
 }
 
@@ -47,7 +69,7 @@ void errorParse(){
 
 void processInput(FILE *fp){
     char line[MAX_INPUT_SIZE];
-
+    
     /* break loop with ^Z or ^D */
     while (fgets(line, sizeof(line)/sizeof(char), fp)) {
         char token, type;
@@ -89,23 +111,23 @@ void processInput(FILE *fp){
             }
         }
     }
+    for (int i = 0; i < numT_var; i++) insertCommand("e ");
 }
 
 void *applyCommands(){
-    while (numberCommands > 0){
+    while (1){
+        char* command = removeCommand();
 
-        pthread_mutex_lock(&lockCommand);
-        const char* command = removeCommand();
-        if (command == NULL){
-            continue;
+        if (strcmp(command, "e ") == 0){
+            free(command);
+            return NULL;
         }
-        pthread_mutex_unlock(&lockCommand);
-
         char token, type;
         char name[MAX_INPUT_SIZE];
         int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
         if (numTokens < 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
+            free(command);
             exit(EXIT_FAILURE);
         }
 
@@ -127,7 +149,7 @@ void *applyCommands(){
                 }
                 break;
             case 'l':
-                searchResult = lookup(name, LOOK);
+                searchResult = lookup(name);
                 if (searchResult >= 0)
                     printf("Search: %s found\n", name);
                 else
@@ -142,6 +164,7 @@ void *applyCommands(){
                 exit(EXIT_FAILURE);
             }
         }
+        free(command);
     }
     return NULL;
 }
@@ -150,13 +173,20 @@ void *applyCommands(){
 
 int main(int argc, char* argv[]){
     
+    
+    if(argc != 4){
+        errorParse();
+    }
+
     file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
     int i;
 
-    if(argc != 4){
-        errorParse();
-    }
+    pthread_mutex_init(&mutex, NULL);
+    pthread_cond_init(&var_in, NULL);
+    pthread_cond_init(&var_out, NULL);
+
+
 
     if (file_in == NULL){
         perror(argv[1]);
@@ -171,18 +201,22 @@ int main(int argc, char* argv[]){
     /* init filesystem */
     init_fs();
     int numThreads = atoi(argv[3]);
+    numT_var = numThreads;
     //printf("\n%d\n", numThreads);
     pthread_t tid[numThreads];
 
     /* process input and print tree */
+    
+    
+    for (i = 0; i < numThreads; i++){
+        pthread_create(&tid[i], NULL, applyCommands, NULL);
+    }
     processInput(file_in);
+
     fclose(file_in);
 
     gettimeofday(&start, NULL);
 
-    for (i = 0; i < numThreads; i++){
-        pthread_create(&tid[i], NULL, applyCommands, NULL);
-    }
 
     //applyCommands();
     
@@ -195,7 +229,9 @@ int main(int argc, char* argv[]){
 
     /* release allocated memory */
     destroy_fs();
-    pthread_mutex_destroy(&lockCommand);
+    pthread_mutex_destroy(&mutex);
+    pthread_cond_destroy(&var_in);
+    pthread_cond_destroy(&var_out);
     gettimeofday(&end, NULL);
 
     /* end timer */
