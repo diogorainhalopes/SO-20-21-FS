@@ -259,8 +259,10 @@ int lookup(char *name, const int mode) {
 
 	/* search for all sub nodes */
 	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
+		p = strtok_r(NULL, delim, &saveptr);
 		lock(current_inumber, READLOCK);//locks every node till last one in the path for read
 		inode_get(current_inumber, &nType, &data);
+		path = p;
 		path = strtok_r(NULL, delim, &saveptr); 
 	}
 
