@@ -22,8 +22,7 @@ pthread_mutex_t mutex;
 
 pthread_cond_t var_in;
 pthread_cond_t var_out;
-
-int end_game = 1;
+int numT_var;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
@@ -32,8 +31,6 @@ int i_in = 0;
 
 int insertCommand(char* data) {
     pthread_mutex_lock(&mutex);
-    pthread_t id = pthread_self();
-    if(end_game == EOF) pthread_exit(&id);
 
     while (numberCommands == MAX_COMMANDS) pthread_cond_wait(&var_in, &mutex);
 
@@ -51,13 +48,15 @@ int insertCommand(char* data) {
 
 char* removeCommand() {
     pthread_mutex_lock(&mutex);
+    char* carry;
     while (numberCommands == 0) pthread_cond_wait(&var_out, &mutex);
     if(numberCommands > 0){
-        headQueue++; if (headQueue == MAX_COMMANDS) headQueue = 0;
         numberCommands--;
+        carry = strdup(inputCommands[headQueue]);
+        headQueue++; if (headQueue == MAX_COMMANDS) headQueue = 0;
         pthread_cond_signal(&var_in);
         pthread_mutex_unlock(&mutex);
-        return inputCommands[headQueue];  
+        return carry;  
     }
     pthread_mutex_unlock(&mutex);
     return NULL;
@@ -70,7 +69,7 @@ void errorParse(){
 
 void processInput(FILE *fp){
     char line[MAX_INPUT_SIZE];
-
+    
     /* break loop with ^Z or ^D */
     while (fgets(line, sizeof(line)/sizeof(char), fp)) {
         char token, type;
@@ -112,21 +111,23 @@ void processInput(FILE *fp){
             }
         }
     }
-    end_game = EOF;
+    for (int i = 0; i < numT_var; i++) insertCommand("e ");
 }
 
 void *applyCommands(){
-    while (numberCommands > 0){
-        const char* command = removeCommand();
-        if (command == NULL){
-            continue;
-        }
+    while (1){
+        char* command = removeCommand();
 
+        if (strcmp(command, "e ") == 0){
+            free(command);
+            return NULL;
+        }
         char token, type;
         char name[MAX_INPUT_SIZE];
         int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
         if (numTokens < 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
+            free(command);
             exit(EXIT_FAILURE);
         }
 
@@ -163,6 +164,7 @@ void *applyCommands(){
                 exit(EXIT_FAILURE);
             }
         }
+        free(command);
     }
     return NULL;
 }
@@ -171,6 +173,11 @@ void *applyCommands(){
 
 int main(int argc, char* argv[]){
     
+    
+    if(argc != 4){
+        errorParse();
+    }
+
     file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
     file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
     int i;
@@ -179,9 +186,7 @@ int main(int argc, char* argv[]){
     pthread_cond_init(&var_in, NULL);
     pthread_cond_init(&var_out, NULL);
 
-    if(argc != 4){
-        errorParse();
-    }
+
 
     if (file_in == NULL){
         perror(argv[1]);
@@ -196,16 +201,17 @@ int main(int argc, char* argv[]){
     /* init filesystem */
     init_fs();
     int numThreads = atoi(argv[3]);
+    numT_var = numThreads;
     //printf("\n%d\n", numThreads);
     pthread_t tid[numThreads];
 
     /* process input and print tree */
     
-    processInput(file_in);
+    
     for (i = 0; i < numThreads; i++){
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
-
+    processInput(file_in);
 
     fclose(file_in);
 

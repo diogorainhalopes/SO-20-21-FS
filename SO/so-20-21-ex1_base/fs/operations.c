@@ -130,7 +130,7 @@ int create(char *name, type nodeType){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = aux_lookup(parent_name, to_unlock);
+	parent_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to create %s, invalid parent dir %s\n",
@@ -198,7 +198,7 @@ int delete(char *name){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = aux_lookup(parent_name, to_unlock);
+	parent_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to delete %s, invalid parent dir %s\n",
@@ -260,36 +260,10 @@ int delete(char *name){
  *     FAIL: otherwise
  */
 int lookup(char *name) {
-	char full_path[MAX_FILE_NAME];
-	char *saveptr;
-	char delim[] = "/";
 	int i = 0;
 	int to_unlock[100];
-	strcpy(full_path, name);
 
-
-	/* start at root node */
-	int current_inumber = FS_ROOT;
-
-	/* use for copy */
-	type nType;
-	union Data data;
-
-	/* get root inode data */
-	lock(current_inumber, 1);//locks root node
-	inode_get(current_inumber, &nType, &data);
-	to_unlock[i] = current_inumber;
-	i++;
-
-	char *path = strtok_r(full_path, delim, &saveptr);
-	/* search for all sub nodes */
-	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
-		lock(current_inumber, 1);//locks every node till last one in the path for read
-		inode_get(current_inumber, &nType, &data);
-		to_unlock[i] = current_inumber;
-		i++;
-		path = strtok_r(NULL, delim, &saveptr); 
-	}
+	int current_inumber = aux_lookup(name, to_unlock, READLOCK);
 
 	for (int e = 0; e < i; e++){
 		unlock(to_unlock[e]);
@@ -299,7 +273,7 @@ int lookup(char *name) {
 }
 
 
-int aux_lookup(char *name, 	int *to_unlock) {
+int aux_lookup(char *name, 	int *to_unlock, int mode) {
 	char full_path[MAX_FILE_NAME];
 	char *saveptr;
 	char delim[] = "/";
@@ -316,13 +290,12 @@ int aux_lookup(char *name, 	int *to_unlock) {
 	char *path = strtok_r(full_path, delim, &saveptr);
 
 	/* get root inode data */
-	if(!path){
+	if(!path && mode == WRITELOCK){
 		lock(current_inumber, WRITELOCK);//locks root node
 	}
 	else{
 		lock(current_inumber, READLOCK);//locks root node
 	}
-	
 	
 	inode_get(current_inumber, &nType, &data);
 	to_unlock[i] = current_inumber;
@@ -332,20 +305,16 @@ int aux_lookup(char *name, 	int *to_unlock) {
 	/* search for all sub nodes */
 	while (path != NULL && (current_inumber = lookup_sub_node(path, data.dirEntries)) != FAIL) {
 		path = strtok_r(NULL, delim, &saveptr); 
-		if(!path){
+		if(!path && mode == WRITELOCK){
 			lock(current_inumber, WRITELOCK);//locks every node till last one in the path for read
 		}
 		else{
-			lock(current_inumber, READLOCK);//locks every node till last one in the path for read
+			lock(current_inumber, READLOCK);
 		}
 		inode_get(current_inumber, &nType, &data);
 		to_unlock[i] = current_inumber;
 		i++;
 	}
-
-	unlock(current_inumber);
-	lock(current_inumber, WRITELOCK);//locks every node till last one in the path for read
-	inode_get(current_inumber, &nType, &data);
 
 
 	//unlock(FS_ROOT);
