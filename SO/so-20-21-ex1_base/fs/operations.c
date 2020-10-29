@@ -40,6 +40,9 @@ void split_parent_child_from_path(char * path, char ** parent, char ** child) {
 }
 
 
+void unlock_all(int *to_unlock);
+
+
 /*
  * Initializes tecnicofs and creates root node.
  */
@@ -120,7 +123,7 @@ int create(char *name, type nodeType){
 	/* use for copy */
 	type pType;
 	union Data pdata;
-	int e = 0;
+	//int e = 0;
 	int to_unlock[100];
 	
 	for (int a = 0; a < 100 ; a++){ 
@@ -135,6 +138,7 @@ int create(char *name, type nodeType){
 	if (parent_inumber == FAIL) {
 		printf("failed to create %s, invalid parent dir %s\n",
 		        name, parent_name);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
 
@@ -143,33 +147,37 @@ int create(char *name, type nodeType){
 	if(pType != T_DIRECTORY) {
 		printf("failed to create %s, parent %s is not a dir\n",
 		        name, parent_name);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
 
 	if (lookup_sub_node(child_name, pdata.dirEntries) != FAIL) {
 		printf("failed to create %s, already exists in dir %s\n",
 		       child_name, parent_name);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
 
 	/* create node and add entry to folder that contains new node */
 	child_inumber = inode_create(nodeType);
+	lock(child_inumber, WRITELOCK);
 	if (child_inumber == FAIL) {
 		printf("failed to create %s in  %s, couldn't allocate inode\n",
 		        child_name, parent_name);
+		unlock(child_inumber);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
 
 	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL) {
 		printf("could not add entry %s in dir %s\n",
 		       child_name, parent_name);
+		unlock(child_inumber);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
-
-	while (to_unlock[e] != -1){
-		unlock(to_unlock[e]);
-		e++;
-	}
+	unlock(child_inumber);
+	unlock_all(to_unlock);
 	return SUCCESS;
 }
 
@@ -187,7 +195,7 @@ int delete(char *name){
 	/* use for copy */
 	type pType, cType;
 	union Data pdata, cdata;
-	int e = 0;
+	//int e = 0;
 	int to_unlock[100];
 
 	for (int a = 0; a < 100 ; a++){ 
@@ -203,6 +211,7 @@ int delete(char *name){
 	if (parent_inumber == FAIL) {
 		printf("failed to delete %s, invalid parent dir %s\n",
 		        child_name, parent_name);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
 
@@ -211,22 +220,28 @@ int delete(char *name){
 	if(pType != T_DIRECTORY) {
 		printf("failed to delete %s, parent %s is not a dir\n",
 		        child_name, parent_name);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
-
+	
 	child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
+	lock(child_inumber, WRITELOCK);
 
 	if (child_inumber == FAIL) {
 		printf("could not delete %s, does not exist in dir %s\n",
 		       name, parent_name);
+		unlock(child_inumber);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
-
+	
 	inode_get(child_inumber, &cType, &cdata);
 
 	if (cType == T_DIRECTORY && is_dir_empty(cdata.dirEntries) == FAIL) {
 		printf("could not delete %s: is a directory and not empty\n",
 		       name);
+		unlock(child_inumber);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
 
@@ -234,19 +249,20 @@ int delete(char *name){
 	if (dir_reset_entry(parent_inumber, child_inumber) == FAIL) {
 		printf("failed to delete %s from dir %s\n",
 		       child_name, parent_name);
+		unlock(child_inumber);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
 
 	if (inode_delete(child_inumber) == FAIL) {
 		printf("could not delete inode number %d from dir %s\n",
 		       child_inumber, parent_name);
+		unlock(child_inumber);
+		unlock_all(to_unlock);
 		return FAIL;
 	}
-
-	while (to_unlock[e] != -1){
-		unlock(to_unlock[e]);
-		e++;
-	}
+	unlock(child_inumber);
+	unlock_all(to_unlock);
 	return SUCCESS;
 }
 
@@ -260,15 +276,15 @@ int delete(char *name){
  *     FAIL: otherwise
  */
 int lookup(char *name) {
-	int i = 0;
 	int to_unlock[100];
+
+	for (int a = 0; a < 100 ; a++){ 
+        to_unlock[a] = -1; 
+    }
 
 	int current_inumber = aux_lookup(name, to_unlock, READLOCK);
 
-	for (int e = 0; e < i; e++){
-		unlock(to_unlock[e]);
-	}
-	//unlock(FS_ROOT);
+	unlock_all(to_unlock);
 	return current_inumber;
 }
 
@@ -315,12 +331,18 @@ int aux_lookup(char *name, 	int *to_unlock, int mode) {
 		to_unlock[i] = current_inumber;
 		i++;
 	}
-
-
 	//unlock(FS_ROOT);
 	return current_inumber;
 }
 
+
+void unlock_all(int *to_unlock){
+	int i = 0;
+	while (to_unlock[i] != -1){
+		unlock(to_unlock[i]);
+		i++;
+	}
+}
 
 /*
  * Prints tecnicofs tree.

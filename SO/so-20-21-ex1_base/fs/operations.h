@@ -4,7 +4,7 @@
 
 #define LOOKWRITE 1
 #define LOOKONLY 2
-
+void unlock_all(int *to_unlock);
 void init_fs();
 void destroy_fs();
 int is_dir_empty(DirEntry *dirEntries);

@@ -40,8 +40,10 @@ void inode_table_destroy() {
         if (inode_table[i].nodeType != T_NONE) {
             /* as data is an union, the same pointer is used for both dirEntries and fileContents */
             /* just release one of them */
-	  if (inode_table[i].data.dirEntries)
-            free(inode_table[i].data.dirEntries);
+            if (inode_table[i].data.dirEntries){
+                pthread_rwlock_destroy(&inode_table[i].rwlock);
+                free(inode_table[i].data.dirEntries);
+            }
         }
     }
 }
@@ -98,8 +100,10 @@ int inode_delete(int inumber) {
 
     inode_table[inumber].nodeType = T_NONE;
     /* see inode_table_destroy function */
-    if (inode_table[inumber].data.dirEntries)
+    if (inode_table[inumber].data.dirEntries){
         free(inode_table[inumber].data.dirEntries);
+        pthread_rwlock_destroy(&inode_table[inumber].rwlock);
+    }
     return SUCCESS;
 }
 
@@ -260,3 +264,12 @@ void unlock(int iNumber){
     pthread_rwlock_unlock(&inode_table[iNumber].rwlock);
     return;
 }
+/*
+void unlock_all(int *to_unlock){
+    int i;
+    while (to_unlock[i] != -1){
+		pthread_rwlock_unlock(&inode_table[to_unlock[i]].rwlock);
+		i++;
+	}
+}
+*/
