@@ -203,7 +203,6 @@ int main(int argc, char* argv[]){
     
     processInput(file_in);
     for (i = 0; i < numThreads; i++){
-        
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
 
