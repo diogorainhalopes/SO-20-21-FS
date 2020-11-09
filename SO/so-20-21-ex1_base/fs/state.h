@@ -69,7 +69,7 @@ int dir_add_entry(int inumber, int sub_inumber, char *sub_name);
 void inode_print_tree(FILE *fp, int inumber, char *name);
 void lock (int inumber, const int option);
 void unlock(int inumber);
-
+//void unlock_all(int *to_unlock);
 
 
 #endif /* INODES_H */
