@@ -106,7 +106,7 @@ int inode_delete(int inumber) {
         free(inode_table[inumber].data.dirEntries);
 
     }
-    pthread_rwlock_unlock(&inode_table[inumber].rwlock);
+    /*pthread_rwlock_unlock(&inode_table[inumber].rwlock);*/
     return SUCCESS;
 }
 
