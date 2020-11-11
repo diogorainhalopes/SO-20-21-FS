@@ -106,7 +106,6 @@ int inode_delete(int inumber) {
         free(inode_table[inumber].data.dirEntries);
 
     }
-    pthread_rwlock_unlock(&inode_table[inumber].rwlock);
     return SUCCESS;
 }
 
@@ -259,7 +258,7 @@ void lock(int iNumber, const int option){
         }
         return;
     }
-    if(option == WRITELOCK){
+    if(option == WRITE){
         if(pthread_rwlock_wrlock(&inode_table[iNumber].rwlock) != 0) {
             printf("failed lock to write, %d\n", iNumber);
         }
@@ -269,6 +268,7 @@ void lock(int iNumber, const int option){
 
 void unlock(int iNumber){
     if(pthread_rwlock_unlock(&inode_table[iNumber].rwlock) != 0) {
+        printf("didnt unlock %d", iNumber);
     }
     return;
 }

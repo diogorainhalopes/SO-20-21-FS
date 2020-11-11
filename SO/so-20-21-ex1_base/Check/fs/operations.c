@@ -127,7 +127,7 @@ int create(char *name, type nodeType){
 	int to_unlock[100];
 	
 	for (int a = 0; a < 100 ; a++){ 
-        to_unlock[a] = -33; 
+        to_unlock[a] = -1; 
     }
 
 	strcpy(name_copy, name);
@@ -199,7 +199,7 @@ int delete(char *name){
 	int to_unlock[100];
 
 	for (int a = 0; a < 100 ; a++){ 
-        to_unlock[a] = -33; 
+        to_unlock[a] = -1; 
     }
 
 
@@ -225,8 +225,8 @@ int delete(char *name){
 	}
 	
 	child_inumber = lookup_sub_node(child_name, pdata.dirEntries);
-	
-	
+	lock(child_inumber, WRITELOCK);
+	printf("im deleting %s, %d\n",child_name, child_inumber);
 
 	if (child_inumber == FAIL) {
 		printf("could not delete %s, does not exist in dir %s\n",
@@ -235,7 +235,7 @@ int delete(char *name){
 		unlock_all(to_unlock);
 		return FAIL;
 	}
-	lock(child_inumber, WRITELOCK);
+	
 	inode_get(child_inumber, &cType, &cdata);
 
 	if (cType == T_DIRECTORY && is_dir_empty(cdata.dirEntries) == FAIL) {
@@ -280,7 +280,7 @@ int lookup(char *name) {
 	int to_unlock[100];
 
 	for (int a = 0; a < 100 ; a++){ 
-        to_unlock[a] = -33; 
+        to_unlock[a] = -1; 
     }
 
 	int current_inumber = aux_lookup(name, to_unlock, READLOCK);
@@ -339,7 +339,7 @@ int aux_lookup(char *name, 	int *to_unlock, int mode) {
 
 void unlock_all(int *to_unlock){
 	int i = 0;
-	while (to_unlock[i] != -33){
+	while (to_unlock[i] != -1){
 		unlock(to_unlock[i]);
 		i++;
 	}
