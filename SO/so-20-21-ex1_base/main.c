@@ -72,10 +72,10 @@ void processInput(FILE *fp){
     
     /* break loop with ^Z or ^D */
     while (fgets(line, sizeof(line)/sizeof(char), fp)) {
-        char token, type;
+        char token, type[100];
         char name[MAX_INPUT_SIZE];
 
-        int numTokens = sscanf(line, "%c %s %c", &token, name, &type);
+        int numTokens = sscanf(line, "%c %s %s", &token, name, type);
 
         /* perform minimal validation */
         if (numTokens < 1) {
@@ -102,6 +102,12 @@ void processInput(FILE *fp){
                 if(insertCommand(line))
                     break;
                 return;
+            case 'm':
+                if(numTokens != 3)
+                    errorParse();
+                if(insertCommand(line))
+                    break;
+                return;
             
             case '#':
                 break;
@@ -122,9 +128,9 @@ void *applyCommands(){
             free(command);
             return NULL;
         }
-        char token, type;
+        char token, type[MAX_INPUT_SIZE];
         char name[MAX_INPUT_SIZE];
-        int numTokens = sscanf(command, "%c %s %c", &token, name, &type);
+        int numTokens = sscanf(command, "%c %s %s", &token, name, type);
         if (numTokens < 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
             free(command);
@@ -134,14 +140,14 @@ void *applyCommands(){
         int searchResult;
         switch (token) {
             case 'c':
-                switch (type) {
+                switch (*type) {
                     case 'f':
-                        create(name, T_FILE);
                         printf("Create file: %s\n", name);
+                        create(name, T_FILE);
                         break;
                     case 'd':
-                        create(name, T_DIRECTORY);
                         printf("Create directory: %s\n", name);
+                        create(name, T_DIRECTORY);
                         break;
                     default:
                         fprintf(stderr, "Error: invalid node type\n");
@@ -156,8 +162,12 @@ void *applyCommands(){
                     printf("Search: %s not found\n", name);
                 break;
             case 'd':
-                delete(name);
                 printf("Delete: %s\n", name);
+                delete(name);
+                break;
+            case 'm':
+                printf("Move: %s to %s\n", name, type);
+                move(name, type);
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
@@ -207,7 +217,7 @@ int main(int argc, char* argv[]){
 
     /* process input and print tree */
     
-    
+    gettimeofday(&start, NULL);
     for (i = 0; i < numThreads; i++){
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
@@ -215,7 +225,7 @@ int main(int argc, char* argv[]){
 
     fclose(file_in);
 
-    gettimeofday(&start, NULL);
+
 
 
     //applyCommands();

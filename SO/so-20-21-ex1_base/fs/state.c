@@ -255,22 +255,23 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
 void lock(int iNumber, const int option){
     if(option == READLOCK){
         if(pthread_rwlock_rdlock(&inode_table[iNumber].rwlock) != 0) {
-            printf("failed lock to read, %d\n", iNumber);
+            printf("failed lock to read %d\n", iNumber);
         }
         return;
     }
     if(option == WRITELOCK){
         if(pthread_rwlock_wrlock(&inode_table[iNumber].rwlock) != 0) {
-            printf("failed lock to write, %d\n", iNumber);
+            printf("failed lock to write %d\n", iNumber);
         }
         return;
     }
 }
 
 void unlock(int iNumber){
-    if(pthread_rwlock_unlock(&inode_table[iNumber].rwlock) != 0) {
+    if(pthread_rwlock_unlock(&inode_table[iNumber].rwlock) == 0) {
+        return;
     }
-    return;
+    else printf("failed to unlock %d\n", iNumber);
 }
 /*
 void unlock_all(int *to_unlock){

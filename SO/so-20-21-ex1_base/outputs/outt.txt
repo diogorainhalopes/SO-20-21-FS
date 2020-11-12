@@ -1,5 +1,9 @@
 
-/a
-/a/b
-/a/x
-/a/x/y
+/fruits
+/fruits/apple
+/fruits/orange
+/fruits/banana
+/fruits/kiwi
+/fruits/coco
+/animals
+/fruits2
