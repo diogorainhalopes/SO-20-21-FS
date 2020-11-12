@@ -3,4 +3,7 @@
 /fruits/apple
 /fruits/orange
 /fruits/banana
+/fruits/kiwi
+/fruits/coco
 /animals
+/fruits2

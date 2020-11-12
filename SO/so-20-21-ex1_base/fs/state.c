@@ -41,10 +41,11 @@ void inode_table_destroy() {
             /* as data is an union, the same pointer is used for both dirEntries and fileContents */
             /* just release one of them */
             if (inode_table[i].data.dirEntries){
-                pthread_rwlock_destroy(&inode_table[i].rwlock);
+                
                 free(inode_table[i].data.dirEntries);
             }
         }
+        pthread_rwlock_destroy(&inode_table[i].rwlock);
     }
 }
 
@@ -64,7 +65,6 @@ int inode_create(type nType) {
 
         if (inode_table[inumber].nodeType == T_NONE) {
             inode_table[inumber].nodeType = nType;
-            pthread_rwlock_init(&inode_table[inumber].rwlock, NULL);
 
             if (nType == T_DIRECTORY) {
                 /* Initializes entry table */
@@ -101,9 +101,12 @@ int inode_delete(int inumber) {
     inode_table[inumber].nodeType = T_NONE;
     /* see inode_table_destroy function */
     if (inode_table[inumber].data.dirEntries){
+        /*pthread_rwlock_unlock(&inode_table[inumber].rwlock);
+        pthread_rwlock_destroy(&inode_table[inumber].rwlock);*/
         free(inode_table[inumber].data.dirEntries);
-        pthread_rwlock_destroy(&inode_table[inumber].rwlock);
+
     }
+    /*pthread_rwlock_unlock(&inode_table[inumber].rwlock);*/
     return SUCCESS;
 }
 
@@ -251,18 +254,24 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
  */
 void lock(int iNumber, const int option){
     if(option == READLOCK){
-        pthread_rwlock_rdlock(&inode_table[iNumber].rwlock);
+        if(pthread_rwlock_rdlock(&inode_table[iNumber].rwlock) != 0) {
+            printf("failed lock to read %d\n", iNumber);
+        }
         return;
     }
-    if(option == WRITE){
-        pthread_rwlock_wrlock(&inode_table[iNumber].rwlock);
+    if(option == WRITELOCK){
+        if(pthread_rwlock_wrlock(&inode_table[iNumber].rwlock) != 0) {
+            printf("failed lock to write %d\n", iNumber);
+        }
         return;
     }
 }
 
 void unlock(int iNumber){
-    pthread_rwlock_unlock(&inode_table[iNumber].rwlock);
-    return;
+    if(pthread_rwlock_unlock(&inode_table[iNumber].rwlock) == 0) {
+        return;
+    }
+    else printf("failed to unlock %d\n", iNumber);
 }
 /*
 void unlock_all(int *to_unlock){
