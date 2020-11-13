@@ -125,6 +125,8 @@ int create(char *name, type nodeType){
 	union Data pdata;
 	//int e = 0;
 	int to_unlock[100];
+
+	int iter[1] = {0};
 	
 	for (int a = 0; a < 100 ; a++){ 
         to_unlock[a] = -33; 
@@ -133,7 +135,7 @@ int create(char *name, type nodeType){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK);
+	parent_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK, iter);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to create %s, invalid parent dir %s\n",
@@ -198,6 +200,8 @@ int delete(char *name){
 	//int e = 0;
 	int to_unlock[100];
 
+	int iter[1] = {0};
+
 	for (int a = 0; a < 100 ; a++){ 
         to_unlock[a] = -33; 
     }
@@ -206,7 +210,7 @@ int delete(char *name){
 	strcpy(name_copy, name);
 	split_parent_child_from_path(name_copy, &parent_name, &child_name);
 
-	parent_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK);
+	parent_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK, iter);
 
 	if (parent_inumber == FAIL) {
 		printf("failed to delete %s, invalid parent dir %s\n",
@@ -278,12 +282,13 @@ int delete(char *name){
  */
 int lookup(char *name) {
 	int to_unlock[100];
+	int iter[1] = {0};
 
 	for (int a = 0; a < 100 ; a++){ 
         to_unlock[a] = -33; 
     }
 
-	int current_inumber = aux_lookup(name, to_unlock, READLOCK);
+	int current_inumber = aux_lookup(name, to_unlock, READLOCK, iter);
 
 	unlock_all(to_unlock);
 	return current_inumber;
@@ -299,72 +304,87 @@ int move(char* origin, char* destination) {
 	char origin_copy[MAX_FILE_NAME];
 	char origin_copy2[MAX_FILE_NAME];
 	char destination_copy[MAX_FILE_NAME];
+	char destination_copy2[MAX_FILE_NAME];
 
 	char *origin_p_name, *origin_c_name;
 	char *parent_name, *child_name;
 
+	//int w =0;
+ 	int iter[1] = {0};
 
+	
+	
 	int to_unlock[100];
 	
 	for (int a = 0; a < 100 ; a++){ 
         to_unlock[a] = -33; 
     }
+
+
 	strcpy(origin_copy, origin);
 	strcpy(origin_copy2, origin);
+	strcpy(destination_copy, destination);
+	strcpy(destination_copy2, destination);
 
 	split_parent_child_from_path(origin_copy, &origin_p_name, &origin_c_name);
-	origin_parent_inumber = aux_lookup(origin_copy, to_unlock, WRITELOCK);
+	split_parent_child_from_path(destination_copy, &parent_name, &child_name);
+/*
+	origin_parent_inumber = aux_lookup(origin_p_name, to_unlock, WRITELOCK);
 	origin_inumber = aux_lookup(origin_copy2, to_unlock, WRITELOCK);
+	
+	parent_dest_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK);
+	child_dest_inumber = aux_lookup(destination_copy2, to_unlock, WRITELOCK);
+	*/
+	if (strcmp(origin_p_name, parent_name) < 0) {
+		origin_parent_inumber = aux_lookup(origin_p_name, to_unlock, WRITELOCK, iter);
+		//printf("iter: %d\n", iter[0]);
+		
+		origin_inumber = aux_lookup(origin_copy2, to_unlock, WRITELOCK, iter);
 
+	//insert_delay(50000000);
+		parent_dest_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK, iter);
+		
+		child_dest_inumber = aux_lookup(destination_copy2, to_unlock, WRITELOCK,iter);
+		//while( to_unlock[w]!=-33) { printf("inumber: %d\n", to_unlock[w]); w++;}	
+		
+		//printf("orig_p: %d, orig_c: %d, dest_p: %d, dest_p: %d\n", origin_parent_inumber, origin_inumber, parent_dest_inumber, child_dest_inumber);
+		
+	}
+	else
+	{
+		parent_dest_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK, iter);
+		child_dest_inumber = aux_lookup(destination_copy2, to_unlock, WRITELOCK, iter);
+		
+		origin_parent_inumber = aux_lookup(origin_p_name, to_unlock, WRITELOCK, iter);
+		origin_inumber = aux_lookup(origin_copy2, to_unlock, WRITELOCK, iter);
+	}
+
+	
+	
 	if (origin_inumber == FAIL) {
 		printf("failed to move %s, invalid file/dir %s\n",
 		        origin, origin_p_name);
 		unlock_all(to_unlock);
 		return FAIL;
 	}
-
-	strcpy(destination_copy, destination);
-
-	child_dest_inumber = aux_lookup(destination_copy, to_unlock, WRITELOCK);
-
-	split_parent_child_from_path(destination_copy, &parent_name, &child_name);
-
-
 	if (child_dest_inumber != FAIL) {
 		printf("failed to move %s, invalid destination dir/file already exists %s\n",
 		        origin, destination);
 		unlock_all(to_unlock);
 		return FAIL;
 	}
-
-	
-
-	if (strcmp(parent_name, "") == 0) {
-		if (dir_add_entry(FS_ROOT, origin_inumber, child_name) == FAIL) {
-			printf("could not move entry %s in dir %s\n",
+	if (parent_dest_inumber == FAIL) {
+		printf("failed to move %s, invalid destination parent dir %s\n",
 				child_name, parent_name);
-			unlock_all(to_unlock);
-			return FAIL;
-		}
+		unlock_all(to_unlock);
+		return FAIL;
 	}
-	else
-	{
-		parent_dest_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK);
-
-		if (parent_dest_inumber == FAIL) {
-			printf("failed to move %s, invalid destination parent dir %s\n",
-					child_name, parent_name);
-			unlock_all(to_unlock);
-			return FAIL;
-		}
-		if (dir_add_entry(parent_dest_inumber, origin_inumber, child_name) == FAIL) {
-			printf("could not move entry %s in dir %s\n",
-				child_name, parent_name);
-			unlock_all(to_unlock);
-			return FAIL;
-		}
+	if (dir_add_entry(parent_dest_inumber, origin_inumber, child_name) == FAIL) {
+		printf("could not move entry %s in dir %s\n",
+			child_name, parent_name);
+		unlock_all(to_unlock);
+		return FAIL;
 	}
-	
 
 	if (dir_reset_entry(origin_parent_inumber, origin_inumber) == FAIL) {
 		printf("failed to move %s from dir %s\n",
@@ -372,7 +392,7 @@ int move(char* origin, char* destination) {
 		unlock_all(to_unlock);
 		return FAIL;
 	}
-
+	
 	unlock_all(to_unlock);
 	return SUCCESS;
 }
@@ -391,11 +411,11 @@ int check_lock(int inumber, int *to_unlock) {
 	return FAIL;
 }
 
-int aux_lookup(char *name, 	int *to_unlock, int mode) {
+int aux_lookup(char *name, 	int *to_unlock, int mode, int *i) {
 	char full_path[MAX_FILE_NAME];
 	char *saveptr;
 	char delim[] = "/";
-	int i = 0;
+	//int i = 0;
 	strcpy(full_path, name);
 
 	/* start at root node */
@@ -411,16 +431,18 @@ int aux_lookup(char *name, 	int *to_unlock, int mode) {
 	if(!path && mode == WRITELOCK){
 		if(check_lock(current_inumber, to_unlock) == FAIL) {
 			lock(current_inumber, WRITELOCK);//locks root node
-			to_unlock[i] = current_inumber;
+			to_unlock[i[0]] = current_inumber;
+			i[0]++;
 		}
 	}
 	else{
 		if(check_lock(current_inumber, to_unlock) == FAIL) {
 			lock(current_inumber, READLOCK);//locks root node
-			to_unlock[i] = current_inumber;
+			to_unlock[i[0]] = current_inumber;
+			i[0]++;
 		}
 	}
-	i++;
+
 	
 	inode_get(current_inumber, &nType, &data);
 
@@ -430,16 +452,18 @@ int aux_lookup(char *name, 	int *to_unlock, int mode) {
 		if(!path && mode == WRITELOCK){
 			if(check_lock(current_inumber, to_unlock) == FAIL) {
 				lock(current_inumber, WRITELOCK);//locks every node till last one in the path for read
-				to_unlock[i] = current_inumber;
+				to_unlock[i[0]] = current_inumber;
+				i[0]++;
 			}
 		}
 		else{
 			if(check_lock(current_inumber, to_unlock) == FAIL) {
 				lock(current_inumber, READLOCK);
-				to_unlock[i] = current_inumber;
+				to_unlock[i[0]] = current_inumber;
+				i[0]++;
 			}
 		}
-		i++;
+
 		inode_get(current_inumber, &nType, &data);
 	}
 	//unlock(FS_ROOT);
