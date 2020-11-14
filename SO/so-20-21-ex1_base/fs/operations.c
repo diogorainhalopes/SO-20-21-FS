@@ -328,26 +328,13 @@ int move(char* origin, char* destination) {
 
 	split_parent_child_from_path(origin_copy, &origin_p_name, &origin_c_name);
 	split_parent_child_from_path(destination_copy, &parent_name, &child_name);
-/*
-	origin_parent_inumber = aux_lookup(origin_p_name, to_unlock, WRITELOCK);
-	origin_inumber = aux_lookup(origin_copy2, to_unlock, WRITELOCK);
-	
-	parent_dest_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK);
-	child_dest_inumber = aux_lookup(destination_copy2, to_unlock, WRITELOCK);
-	*/
+
 	if (strcmp(origin_p_name, parent_name) < 0) {
-		origin_parent_inumber = aux_lookup(origin_p_name, to_unlock, WRITELOCK, iter);
-		//printf("iter: %d\n", iter[0]);
-		
+		origin_parent_inumber = aux_lookup(origin_p_name, to_unlock, WRITELOCK, iter);		
 		origin_inumber = aux_lookup(origin_copy2, to_unlock, WRITELOCK, iter);
 
-	//insert_delay(50000000);
-		parent_dest_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK, iter);
-		
+		parent_dest_inumber = aux_lookup(parent_name, to_unlock, WRITELOCK, iter);		
 		child_dest_inumber = aux_lookup(destination_copy2, to_unlock, WRITELOCK,iter);
-		//while( to_unlock[w]!=-33) { printf("inumber: %d\n", to_unlock[w]); w++;}	
-		
-		//printf("orig_p: %d, orig_c: %d, dest_p: %d, dest_p: %d\n", origin_parent_inumber, origin_inumber, parent_dest_inumber, child_dest_inumber);
 		
 	}
 	else

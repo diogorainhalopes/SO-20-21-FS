@@ -60,25 +60,28 @@ void inode_table_destroy() {
 int inode_create(type nType) {
     /* Used for testing synchronization speedup */
     insert_delay(DELAY);
+    int inumber;
+    for (inumber = 0; inumber < INODE_TABLE_SIZE; inumber++) {
+            //pthread_rwlock_trywrlock(&inode_table[inumber].rwlock);
+            if (inode_table[inumber].nodeType == T_NONE) {
 
-    for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++) {
+                inode_table[inumber].nodeType = nType;
 
-        if (inode_table[inumber].nodeType == T_NONE) {
-            inode_table[inumber].nodeType = nType;
-
-            if (nType == T_DIRECTORY) {
-                /* Initializes entry table */
-                inode_table[inumber].data.dirEntries = malloc(sizeof(DirEntry) * MAX_DIR_ENTRIES);
-                
-                for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
-                    inode_table[inumber].data.dirEntries[i].inumber = FREE_INODE;
+                if (nType == T_DIRECTORY) {
+                    /* Initializes entry table */
+                    inode_table[inumber].data.dirEntries = malloc(sizeof(DirEntry) * MAX_DIR_ENTRIES);
+                    
+                    for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
+                        inode_table[inumber].data.dirEntries[i].inumber = FREE_INODE;
+                    }
                 }
-            }
-            else {
-                inode_table[inumber].data.fileContents = NULL;
-            }
+                else {
+                    inode_table[inumber].data.fileContents = NULL;
+                }
+            //unlock(inumber);
             return inumber;
-        }
+            }
+        //unlock(inumber);
     }
     return FAIL;
 }
