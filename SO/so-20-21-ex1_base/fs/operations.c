@@ -162,11 +162,11 @@ int create(char *name, type nodeType){
 
 	/* create node and add entry to folder that contains new node */
 	child_inumber = inode_create(nodeType);
-	lock(child_inumber, WRITELOCK);
+	//lock(child_inumber, WRITELOCK);
 	if (child_inumber == FAIL) {
 		printf("failed to create %s in  %s, couldn't allocate inode\n",
 		        child_name, parent_name);
-		unlock(child_inumber);
+		//unlock(child_inumber);
 		unlock_all(to_unlock);
 		return FAIL;
 	}
@@ -174,11 +174,11 @@ int create(char *name, type nodeType){
 	if (dir_add_entry(parent_inumber, child_inumber, child_name) == FAIL) {
 		printf("could not add entry %s in dir %s\n",
 		       child_name, parent_name);
-		unlock(child_inumber);
+		//unlock(child_inumber);
 		unlock_all(to_unlock);
 		return FAIL;
 	}
-	unlock(child_inumber);
+	//unlock(child_inumber);
 	unlock_all(to_unlock);
 	return SUCCESS;
 }
