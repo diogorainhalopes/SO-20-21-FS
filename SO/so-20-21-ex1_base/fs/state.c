@@ -6,7 +6,6 @@
 #include "state.h"
 #include "../tecnicofs-api-constants.h"
 
-
 inode_t inode_table[INODE_TABLE_SIZE];
 
 /*
@@ -15,8 +14,6 @@ inode_t inode_table[INODE_TABLE_SIZE];
 void insert_delay(int cycles) {
     for (int i = 0; i < cycles; i++) {}
 }
-
-
 
 
 /*
@@ -34,7 +31,6 @@ void inode_table_init() {
 /*
  * Releases the allocated memory for the i-nodes tables.
  */
-
 void inode_table_destroy() {
     for (int i = 0; i < INODE_TABLE_SIZE; i++) {
         if (inode_table[i].nodeType != T_NONE) {
@@ -257,36 +253,36 @@ void inode_print_tree(FILE *fp, int inumber, char *name) {
 }
 
 
+
 /*
- * locks nodes (lock type based on a given input)
+ * Locks given inode
+ * Input:
+ *  - inumber: number to specific inode in inode_table
+ *  - option: mode to lock (read or write)
  */
-void lock(int iNumber, const int option){
+void lock(int inumber, const int option){
     if(option == READLOCK){
-        if(pthread_rwlock_rdlock(&inode_table[iNumber].rwlock) != 0) {
-            printf("failed lock to read %d\n", iNumber);
+        if(pthread_rwlock_rdlock(&inode_table[inumber].rwlock) != 0) {
+            printf("failed lock to read %d\n", inumber);
         }
         return;
     }
     if(option == WRITELOCK){
-        if(pthread_rwlock_wrlock(&inode_table[iNumber].rwlock) != 0) {
-            printf("failed lock to write %d\n", iNumber);
+        if(pthread_rwlock_wrlock(&inode_table[inumber].rwlock) != 0) {
+            printf("failed lock to write %d\n", inumber);
         }
         return;
     }
 }
 
-void unlock(int iNumber){
-    if(pthread_rwlock_unlock(&inode_table[iNumber].rwlock) == 0) {
+/*
+ * Unlocks given inode
+ * Input:
+ *  - inumber: number to specific inode in inode_table
+ */
+void unlock(int inumber){
+    if(pthread_rwlock_unlock(&inode_table[inumber].rwlock) == 0) {
         return;
     }
-    else printf("failed to unlock %d\n", iNumber);
+    else printf("failed to unlock %d\n", inumber);
 }
-/*
-void unlock_all(int *to_unlock){
-    int i;
-    while (to_unlock[i] != -1){
-		pthread_rwlock_unlock(&inode_table[to_unlock[i]].rwlock);
-		i++;
-	}
-}
-*/

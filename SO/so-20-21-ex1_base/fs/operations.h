@@ -2,8 +2,6 @@
 #define FS_H
 #include "state.h"
 
-//#define LOOKWRITE 1
-//#define LOOKONLY 2
 void unlock_all(int *to_unlock);
 void init_fs();
 void destroy_fs();

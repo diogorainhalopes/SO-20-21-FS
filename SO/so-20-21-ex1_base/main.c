@@ -13,32 +13,41 @@
 #define MAX_INPUT_SIZE 100
 
 
-FILE* file_in; //input file
-FILE* file_out; //output file
+FILE* file_in; /* input file */
+FILE* file_out; /* output file */
 
-struct timeval start, end;
+struct timeval start, end; /* time struct */
 
-pthread_mutex_t mutex;
+pthread_mutex_t mutex;  /* global mutex used to sync the input */
 
-pthread_cond_t var_in;
+/* conditional variables */
+pthread_cond_t var_in;  
 pthread_cond_t var_out;
 int numT_var;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 int numberCommands = 0;
 int headQueue = 0;
-int i_in = 0;
+int insert_iter = 0;           /* iterator in the comand list */
 
+
+
+
+
+/* Given a command, the function will add it to a list
+ * Input:
+ *  - data: string with instructions and information to the command
+ */
 int insertCommand(char* data) {
     pthread_mutex_lock(&mutex);
-
+    // circular array 
     while (numberCommands == MAX_COMMANDS) pthread_cond_wait(&var_in, &mutex);
-
+                                        /* waits till theres memory to insert a new command */
     if(numberCommands != MAX_COMMANDS) {
-        strcpy(inputCommands[i_in++], data);
-        if (i_in == MAX_COMMANDS) i_in = 0;
+        strcpy(inputCommands[insert_iter++], data);
+        if (insert_iter == MAX_COMMANDS) insert_iter = 0;     // circular array 
         numberCommands++;
-        pthread_cond_signal(&var_out);
+        pthread_cond_signal(&var_out);  /* signals that exists a command to remove */
         pthread_mutex_unlock(&mutex);
         return 1;
     }
@@ -46,15 +55,20 @@ int insertCommand(char* data) {
     return 0;
 }
 
+/* Removes a command from the command list and sends it to be executed
+ * Output:
+ * - carry: command to be executed in applyComands
+ */
 char* removeCommand() {
     pthread_mutex_lock(&mutex);
     char* carry;
     while (numberCommands == 0) pthread_cond_wait(&var_out, &mutex);
+                                /* waits till theres some command to remove */
     if(numberCommands > 0){
         numberCommands--;
         carry = strdup(inputCommands[headQueue]);
         headQueue++; if (headQueue == MAX_COMMANDS) headQueue = 0;
-        pthread_cond_signal(&var_in);
+        pthread_cond_signal(&var_in);       /* signals that theres room to a new command */
         pthread_mutex_unlock(&mutex);
         return carry;  
     }
@@ -62,11 +76,18 @@ char* removeCommand() {
     return NULL;
 }
 
+/* Simple error parsing
+ * 
+ */
 void errorParse(){
     fprintf(stderr, "Error: command invalid\n");
     exit(EXIT_FAILURE);
 }
 
+/* Processes the input in a given file
+ * Input:
+ * - fp: file with commands and data to be processed
+ */
 void processInput(FILE *fp){
     char line[MAX_INPUT_SIZE];
     
@@ -82,50 +103,52 @@ void processInput(FILE *fp){
             continue;
         }
         switch (token) {
-            case 'c':
+            case 'c':                   /* create */
                 if(numTokens != 3)
                     errorParse();
                 if(insertCommand(line))
                     break;
                 return;
             
-            case 'l':
+            case 'l':                   /* lookup */
                 if(numTokens != 2)
                     errorParse();
                 if(insertCommand(line))
                     break;
                 return;
             
-            case 'd':
+            case 'd':                   /* delete */
                 if(numTokens != 2)
                     errorParse();
                 if(insertCommand(line))
                     break;
                 return;
-            case 'm':
+            case 'm':                   /* move */
                 if(numTokens != 3)
                     errorParse();
                 if(insertCommand(line))
                     break;
                 return;
             
-            case '#':
+            case '#':                   /* comment */
                 break;
             
-            default: { /* error */
+            default: {                  /* error */
                 errorParse();
             }
         }
     }
-    for (int i = 0; i < numT_var; i++) insertCommand("e ");
+    for (int i = 0; i < numT_var; i++) insertCommand("e "); /* EOF command to end threads */
 }
 
+/* Funtion to be picked up by each thread to execute commands
+ */
 void *applyCommands(){
     while (1){
         char* command = removeCommand();
 
-        if (strcmp(command, "e ") == 0){
-            free(command);
+        if (strcmp(command, "e ") == 0) {    /* if the verification is successful, */
+            free(command);                   /* calls to end thread */
             return NULL;
         }
         char token, type[MAX_INPUT_SIZE];
@@ -188,15 +211,14 @@ int main(int argc, char* argv[]){
         errorParse();
     }
 
-    file_in = fopen(argv[1], MODE_FILE_READ);//opens inputfile
-    file_out = fopen(argv[2], MODE_FILE_WRITE);//opens outputfile
+    file_in = fopen(argv[1], MODE_FILE_READ);       /* opens inputfile */
+    file_out = fopen(argv[2], MODE_FILE_WRITE);     /* opens outputfile */
     int i;
 
+    /* mutexes initializations */
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&var_in, NULL);
     pthread_cond_init(&var_out, NULL);
-
-
 
     if (file_in == NULL){
         perror(argv[1]);
@@ -208,38 +230,37 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    /* init filesystem */
+    /* init filesystem, converts number of threads and creates list of threads */
     init_fs();
     int numThreads = atoi(argv[3]);
     numT_var = numThreads;
-    //printf("\n%d\n", numThreads);
     pthread_t tid[numThreads];
 
-    /* process input and print tree */
+    /* starts counting time, process input, close input file and creates threads */
     
     gettimeofday(&start, NULL);
+
     for (i = 0; i < numThreads; i++){
         pthread_create(&tid[i], NULL, applyCommands, NULL);
     }
+
     processInput(file_in);
 
     fclose(file_in);
-
-
-
-
-    //applyCommands();
     
+    /* thread sync */
     for (i = 0; i < numThreads; i++){
         pthread_join(tid[i], NULL);
     } 
 
-    gettimeofday(&end, NULL);
     /* end timer */
+    gettimeofday(&end, NULL);
+    /* process time to display */
     double timeReal = (end.tv_sec + end.tv_usec / 1000000.0) -
         (start.tv_sec + start.tv_usec / 1000000.0);
     printf("TecnicoFS completed in %.4f seconds.\n", timeReal);
 
+    /* print tecnicofs */
     print_tecnicofs_tree(file_out);
     fclose(file_out);
 
@@ -248,9 +269,6 @@ int main(int argc, char* argv[]){
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&var_in);
     pthread_cond_destroy(&var_out);
-
-
-
 
     exit(EXIT_SUCCESS);
 }
