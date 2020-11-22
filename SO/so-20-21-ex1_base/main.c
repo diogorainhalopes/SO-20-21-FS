@@ -54,7 +54,7 @@ char* removeCommand() {
         numberCommands--;
         carry = strdup(inputCommands[headQueue]);
         headQueue++; if (headQueue == MAX_COMMANDS) headQueue = 0;
-        pthread_cond_signal(& );
+        pthread_cond_signal(&var_in);
         pthread_mutex_unlock(&mutex);
         return carry;  
     }

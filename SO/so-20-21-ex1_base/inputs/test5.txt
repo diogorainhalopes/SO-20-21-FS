@@ -1,0 +1,9 @@
+c fruits d
+c fruits/apple f 
+c fruits2 d
+c fruits2/melao f
+c melao1 d
+c melao1/banana f
+m fruits/apple melao1/apple
+l melao1/apple
+#m melao1 fruits/apple
