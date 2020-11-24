@@ -7,6 +7,13 @@
 #include "fs/operations.h"
 #include <sys/time.h>
 #include <pthread.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <strings.h>
+#include <sys/uio.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 
 #define MAX_COMMANDS 10
@@ -30,6 +37,21 @@ int numberCommands = 0;
 int headQueue = 0;
 int insert_iter = 0;           /* iterator in the comand list */
 
+
+int setSockAddrUn(char *path, struct sockaddr_un *addr) {
+
+  if (addr == NULL)
+    return 0;
+
+  bzero((char *)addr, sizeof(struct sockaddr_un));
+  addr->sun_family = AF_UNIX;
+  strcpy(addr->sun_path, path);
+
+  return SUN_LEN(addr);
+}
+
+#define INDIM 30
+#define OUTDIM 512
 
 
 
@@ -206,16 +228,16 @@ void *applyCommands(){
 
 int main(int argc, char* argv[]){
     
-    
+    /*
     if(argc != 4){
         errorParse();
     }
 
-    file_in = fopen(argv[1], MODE_FILE_READ);       /* opens inputfile */
-    file_out = fopen(argv[2], MODE_FILE_WRITE);     /* opens outputfile */
+    file_in = fopen(argv[1], MODE_FILE_READ);       
+    file_out = fopen(argv[2], MODE_FILE_WRITE);     
     int i;
 
-    /* mutexes initializations */
+
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&var_in, NULL);
     pthread_cond_init(&var_out, NULL);
@@ -230,13 +252,12 @@ int main(int argc, char* argv[]){
         exit(1);
     }
 
-    /* init filesystem, converts number of threads and creates list of threads */
+
     init_fs();
     int numThreads = atoi(argv[3]);
     numT_var = numThreads;
     pthread_t tid[numThreads];
 
-    /* starts counting time, process input, close input file and creates threads */
     
     gettimeofday(&start, NULL);
 
@@ -248,28 +269,83 @@ int main(int argc, char* argv[]){
 
     fclose(file_in);
     
-    /* thread sync */
     for (i = 0; i < numThreads; i++){
         pthread_join(tid[i], NULL);
     } 
 
-    /* end timer */
+
     gettimeofday(&end, NULL);
-    /* process time to display */
+
     double timeReal = (end.tv_sec + end.tv_usec / 1000000.0) -
         (start.tv_sec + start.tv_usec / 1000000.0);
     printf("TecnicoFS completed in %.4f seconds.\n", timeReal);
 
-    /* print tecnicofs */
+
     print_tecnicofs_tree(file_out);
     fclose(file_out);
 
-    /* release allocated memory */
+
     destroy_fs();
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&var_in);
     pthread_cond_destroy(&var_out);
 
     exit(EXIT_SUCCESS);
+
+    */
+
+
+  int sockfd;
+  struct sockaddr_un server_addr;
+  socklen_t addrlen;
+  char *path;
+
+  if (argc < 2)
+    exit(EXIT_FAILURE);
+
+  if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
+    perror("server: can't open socket");
+    exit(EXIT_FAILURE);
+  }
+
+  path = argv[1];
+
+  unlink(path);
+
+  addrlen = setSockAddrUn (argv[1], &server_addr);
+  if (bind(sockfd, (struct sockaddr *) &server_addr, addrlen) < 0) {
+    perror("server: bind error");
+    exit(EXIT_FAILURE);
+  }
+  
+  while (1) {
+    struct sockaddr_un client_addr;
+    char in_buffer[INDIM], out_buffer[OUTDIM];
+    int c;
+
+    addrlen=sizeof(struct sockaddr_un);
+    c = recvfrom(sockfd, in_buffer, sizeof(in_buffer)-1, 0,
+		 (struct sockaddr *)&client_addr, &addrlen);
+    if (c <= 0) continue;
+    //Preventivo, caso o cliente nao tenha terminado a mensagem em '\0', 
+    in_buffer[c]='\0';
+    
+    printf("Recebeu mensagem de %s: %s\n", client_addr.sun_path, in_buffer);
+    
+
+    c = sprintf(out_buffer, "Ola' %s, que tal vai isso?", in_buffer);
+    
+    sendto(sockfd, out_buffer, c+1, 0, (struct sockaddr *)&client_addr, addrlen);
+
+  }
+
+  //Fechar e apagar o nome do socket, apesar deste programa 
+  //nunca chegar a este ponto
+  close(sockfd);
+  unlink(argv[1]);
+  exit(EXIT_SUCCESS);
+
 }
+
+
  
