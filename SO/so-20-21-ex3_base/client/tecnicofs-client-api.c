@@ -34,7 +34,7 @@ int setSockAddrUn(char *path, struct sockaddr_un *addr) {
 
 int tfsCreate(char *filename, char nodeType) {
 
-if (sendto(sockfd, "MENSAGEM", strlen("MENSAGEM")+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
+if (sendto(sockfd, "CREATE", strlen("CREATE")+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
     perror("client: sendto error");
     exit(EXIT_FAILURE);
   }
@@ -83,6 +83,6 @@ servlen = setSockAddrUn(server, &serv_addr);
 
 int tfsUnmount(char* argv[]) {
   close(sockfd);
-  unlink(argv[2]);
+  //unlink(argv[2]);
   return -1;
 }
