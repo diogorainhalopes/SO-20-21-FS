@@ -113,7 +113,7 @@ void* processInput() {
 
 int main(int argc, char* argv[]) {
     parseArgs(argc, argv);
-    printf("parse feito\n");
+    
     if (tfsMount(serverName) == 0)
       printf("Mounted! (socket = %s)\n", serverName);
     else {
