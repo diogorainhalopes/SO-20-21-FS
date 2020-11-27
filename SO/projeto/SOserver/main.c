@@ -21,13 +21,13 @@
 #define INDIM 30
 #define OUTDIM 512
 
-int sockfd;
-struct sockaddr_un server_addr;
-socklen_t addrlen;
-char *path;
-struct sockaddr_un client_addr;
-char out_buffer[1];
-char in_buffer[MAX_INPUT_SIZE];
+
+
+typedef struct rs_args{
+    int sockfd;
+    socklen_t addrlen;
+    struct sockaddr_un client_addr;
+} rs_args;
 
 
     
@@ -59,33 +59,36 @@ void errorParse(){
  * Output:
  * - carry: command to be executed in applyComands
  */
-char* removeCommand() {
-    
+char* removeCommand(int sockfd, socklen_t addrlen, struct sockaddr_un client_addr) {
+    char *carry;
     int c;
     addrlen=sizeof(struct sockaddr_un);
-
+    char in_buffer[MAX_INPUT_SIZE];
     c = recvfrom(sockfd, in_buffer, sizeof(in_buffer)-1, 0,
 		 (struct sockaddr *)&client_addr, &addrlen);
     if (c <= 0) errorParse();
     //Preventivo, caso o cliente nao tenha terminado a mensagem em '\0', 
     in_buffer[c]='\0';
     //printf("Recebeu operação de %s: %s\n", client_addr.sun_path, in_buffer);
-    return in_buffer;
+    carry = strdup(in_buffer);
+    printf("carry: %s\n", carry);
+    return carry;
 }
-
 
 
 /* Funtion to be picked up by each thread to execute commands
  */
-void *applyCommands(){
+void *applyCommands(void* s_args){
     while (1){
-        char *command = removeCommand();
-
+        rs_args *args = (rs_args*)s_args;
+        char *command = removeCommand(args->sockfd, args->addrlen, args->client_addr);
+        int out_buffer[1];
         char token, type[MAX_INPUT_SIZE];
         char name[MAX_INPUT_SIZE];
         int numTokens = sscanf(command, "%c %s %s", &token, name, type);
         if (numTokens < 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
+            free(command);
             exit(EXIT_FAILURE);
         }
         switch (token) {
@@ -94,12 +97,15 @@ void *applyCommands(){
                     case 'f':
                         printf("Create file: %s\n", name);
                         out_buffer[0] = create(name, T_FILE);
-                        sendto(sockfd, out_buffer, strlen(out_buffer)+1, 0, (struct sockaddr *)&client_addr, addrlen);
+                        sendto(args->sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                         break;
                     case 'd':
                         printf("Create directory: %s\n", name);
                         out_buffer[0] = create(name, T_DIRECTORY);
-                        sendto(sockfd, out_buffer, strlen(out_buffer)+1, 0, (struct sockaddr *)&client_addr, addrlen);
+                        printf("antes de amndar %d\n", out_buffer[0]);
+                        sendto(args->sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                        printf("apos de mandar %d\n", out_buffer[0]);
+
                         break;
                     default:
                         fprintf(stderr, "Error: invalid node type\n");
@@ -108,28 +114,29 @@ void *applyCommands(){
                 break;
             case 'l':
                 out_buffer[0] = lookup(name);
-                if (out_buffer[0] >= 0)
+                if (out_buffer >= 0)
                     printf("Search: %s found\n", name);
                 else {
                     printf("Search: %s not found\n", name);
                 }
-                sendto(sockfd, out_buffer, strlen(out_buffer)+1, 0, (struct sockaddr *)&client_addr, addrlen);
+                sendto(args->sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                 break;
             case 'd':
                 printf("Delete: %s\n", name);
                 out_buffer[0] = delete(name);
-                sendto(sockfd, out_buffer, strlen(out_buffer)+1, 0, (struct sockaddr *)&client_addr, addrlen);
+                sendto(args->sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                 break;
             case 'm':
                 printf("Move: %s to %s\n", name, type);
                 out_buffer[0] = move(name, type);
-                sendto(sockfd, out_buffer, strlen(out_buffer)+1, 0, (struct sockaddr *)&client_addr, addrlen);
+                sendto(args->sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
                 exit(EXIT_FAILURE);
             }
         }
+        free(command);
     }
     return NULL;
 }
@@ -137,45 +144,39 @@ void *applyCommands(){
 
 
 int main(int argc, char* argv[]){
-    
+
+    struct sockaddr_un server_addr;
+    char *path;
+    rs_args args;
     if (argc < 3) exit(EXIT_FAILURE);
 
     init_fs();
+
     int numThreads = atoi(argv[1]);
     pthread_t tid[numThreads];
 
-    
-
-    if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
+    if ((args.sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
         perror("server: can't open socket");
         exit(EXIT_FAILURE);
-  }
+    }
 
     path = argv[2];
 
     unlink(path);
 
-    addrlen = setSockAddrUn (argv[2], &server_addr);
-    if (bind(sockfd, (struct sockaddr *) &server_addr, addrlen) < 0) {
+    args.addrlen = setSockAddrUn(argv[2], &server_addr);
+    if (bind(args.sockfd, (struct sockaddr *) &server_addr, args.addrlen) < 0) {
         perror("server: bind error");
         exit(EXIT_FAILURE);
     }
-  for (int i = 0; i < numThreads; i++){
-        pthread_create(&tid[i], NULL, applyCommands, NULL);
+    for (int i = 0; i < numThreads; i++){
+        pthread_create(&tid[i], NULL, applyCommands, &args);
     }
-  while (1) { }
+  
+    for (int i = 0; i < numThreads; i++){
+        pthread_join(tid[i], NULL);
+    } 
     
-    
-
-/**************************************************************************/
-
-
-
-
-
-
-/****************************************************************************/
-
   
     exit(EXIT_SUCCESS);
 }

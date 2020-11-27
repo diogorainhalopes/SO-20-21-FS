@@ -2,6 +2,7 @@
 #define API_H
 #define MAX_INPUT_SIZE 100
 #include "tecnicofs-api-constants.h"
+#include <sys/socket.h>
 
 int tfsCreate(char *path, char nodeType);
 int tfsDelete(char *path);
