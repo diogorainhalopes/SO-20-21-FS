@@ -13,21 +13,20 @@
 int sockfd;
 socklen_t servlen, clilen;
 struct sockaddr_un serv_addr, client_addr;
-int buffer[1];
-char* server;
+char buffer[1000];
+char *server;
 
 
 void dg_cli(int sockfd, char* out_buffer, int c) {
+    bzero((char *)buffer, sizeof(buffer));
     if (sendto(sockfd, out_buffer, c+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
         printf("client: sendto error, unable to connect to %s\n", serv_addr.sun_path);
         exit(EXIT_FAILURE);
     }
-    printf("nickelback %d\n", buffer[0]);
-    if (recvfrom(sockfd, &buffer, sizeof(buffer), 0, 0, 0) < 0) {
+    if (recvfrom(sockfd, buffer, sizeof(buffer), 0, 0, 0) < 0) {
         printf("client: recvfrom error, unable to connect to %s\n", serv_addr.sun_path);
         exit(EXIT_FAILURE);
     }
-    printf("nickelback222 %d\n", buffer[0]);
 }
 
 
@@ -52,10 +51,8 @@ int tfsCreate(char *filename, char nodeType) {
     char out_buffer[MAX_INPUT_SIZE];
     int c;
     c = sprintf(out_buffer, "c %s %c", filename, nodeType);
-    printf("antes de mandar\n");
     dg_cli(sockfd, out_buffer, c);
-    printf("depois de receber\n");
-    return buffer[0];
+    return atoi(buffer);
 }
 
 int tfsDelete(char *path) {
@@ -63,7 +60,7 @@ int tfsDelete(char *path) {
     int c;
     c = sprintf(out_buffer, "d %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return atoi(buffer);
 }
 
 int tfsMove(char *from, char *to) {
@@ -71,7 +68,7 @@ int tfsMove(char *from, char *to) {
     int c;
     c = sprintf(out_buffer, "m %s %s", from, to);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return atoi(buffer);
 }
 
 int tfsLookup(char *path) {
@@ -79,7 +76,15 @@ int tfsLookup(char *path) {
     int c;
     c = sprintf(out_buffer, "l %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return atoi(buffer);
+}
+
+int tfsPrint(char *path) {
+    char out_buffer[MAX_INPUT_SIZE];
+    int c;
+    c = sprintf(out_buffer, "p %s", path);
+    dg_cli(sockfd, out_buffer, c);
+    return atoi(buffer);
 }
 
 int tfsMount(char * sockPath) {
@@ -121,3 +126,6 @@ int tfsUnmount(char* argv[]) {
   //unlink(argv[2]);
   return -1;
 }
+
+
+
