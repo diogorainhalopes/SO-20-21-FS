@@ -13,18 +13,19 @@
 int sockfd;
 socklen_t servlen, clilen;
 struct sockaddr_un serv_addr, client_addr;
-char buffer[1000];
+int buffer[10];
 char *server;
 
 
 void dg_cli(int sockfd, char* out_buffer, int c) {
-    bzero((char *)buffer, sizeof(buffer));
+    bzero(buffer, 10);
     if (sendto(sockfd, out_buffer, c+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
         printf("client: sendto error, unable to connect to %s\n", serv_addr.sun_path);
         exit(EXIT_FAILURE);
     }
     if (recvfrom(sockfd, buffer, sizeof(buffer), 0, 0, 0) < 0) {
         printf("client: recvfrom error, unable to connect to %s\n", serv_addr.sun_path);
+        printf("RETORNO %d\n", buffer[0]);
         exit(EXIT_FAILURE);
     }
 }
@@ -52,7 +53,7 @@ int tfsCreate(char *filename, char nodeType) {
     int c;
     c = sprintf(out_buffer, "c %s %c", filename, nodeType);
     dg_cli(sockfd, out_buffer, c);
-    return atoi(buffer);
+    return buffer[0];
 }
 
 int tfsDelete(char *path) {
@@ -60,7 +61,7 @@ int tfsDelete(char *path) {
     int c;
     c = sprintf(out_buffer, "d %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return atoi(buffer);
+    return buffer[0];
 }
 
 int tfsMove(char *from, char *to) {
@@ -68,7 +69,7 @@ int tfsMove(char *from, char *to) {
     int c;
     c = sprintf(out_buffer, "m %s %s", from, to);
     dg_cli(sockfd, out_buffer, c);
-    return atoi(buffer);
+    return buffer[0];
 }
 
 int tfsLookup(char *path) {
@@ -76,7 +77,7 @@ int tfsLookup(char *path) {
     int c;
     c = sprintf(out_buffer, "l %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return atoi(buffer);
+    return buffer[0];
 }
 
 int tfsPrint(char *path) {
@@ -84,7 +85,7 @@ int tfsPrint(char *path) {
     int c;
     c = sprintf(out_buffer, "p %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return atoi(buffer);
+    return buffer[0];
 }
 
 int tfsMount(char * sockPath) {

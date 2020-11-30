@@ -88,8 +88,8 @@ void *applyCommands(){
         pthread_mutex_unlock(&mutex);
         rs_args *args = (rs_args *)malloc(sizeof(rs_args)+1);
         char *command = removeCommand(sockfd, args);
-        int out_buffer;
-        char *msg = (char *)malloc(sizeof(char)*MAX_FILE_NAME);
+        int *out_buffer = (int *)malloc(sizeof(int));
+        //char *msg = (char *)malloc(sizeof(char)*MAX_FILE_NAME);
         char token, type[MAX_INPUT_SIZE];
         char name[MAX_INPUT_SIZE];
         int numTokens = sscanf(command, "%c %s %s", &token, name, type);
@@ -104,18 +104,18 @@ void *applyCommands(){
                     case 'f':
                         t_active++;
                         printf("Create file: %s\n", name);
-                        out_buffer = create(name, T_FILE);
-                        sprintf(msg, "%d", out_buffer);
-                        sendto(sockfd, msg,  strlen(msg), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                        out_buffer[0] = create(name, T_FILE);
+                        //sprintf(msg, "%d", out_buffer);
+                        sendto(sockfd, out_buffer,  sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                         t_active--;
                         pthread_cond_signal(&var);
                         break;
                     case 'd':
                         t_active++;
                         printf("Create directory: %s\n", name);
-                        out_buffer = create(name, T_DIRECTORY);
-                        sprintf(msg, "%d", out_buffer);
-                        sendto(sockfd, msg,  strlen(msg), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                        out_buffer[0] = create(name, T_DIRECTORY);
+                        //sprintf(msg, "%d", out_buffer);
+                        sendto(sockfd, out_buffer,  sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                         t_active--;
                         pthread_cond_signal(&var);
                         break;
@@ -126,14 +126,14 @@ void *applyCommands(){
                 break;
             case 'l':
                 t_active++;
-                out_buffer = lookup(name);
-                if (out_buffer >= 0)
+                out_buffer[0] = lookup(name);
+                if (out_buffer[0] >= 0)
                     printf("Search: %s found\n", name);
                 else {
                     printf("Search: %s not found\n", name);
                 }
-                sprintf(msg, "%d", out_buffer);
-                sendto(sockfd, msg,  strlen(msg), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                //sprintf(msg, "%d", out_buffer);
+                sendto(sockfd, out_buffer,  sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                 t_active--;
                 pthread_cond_signal(&var);
 
@@ -141,9 +141,9 @@ void *applyCommands(){
             case 'd':
                 t_active++;
                 printf("Delete: %s\n", name);
-                out_buffer = delete(name);
-                sprintf(msg, "%d", out_buffer);
-                sendto(sockfd, msg,  strlen(msg), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                out_buffer[0] = delete(name);
+                //sprintf(msg, "%d", out_buffer);
+                sendto(sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                 t_active--;
                 pthread_cond_signal(&var);
 
@@ -151,9 +151,9 @@ void *applyCommands(){
             case 'm':
                 t_active++;
                 printf("Move: %s to %s\n", name, type);
-                out_buffer = move(name, type);
-                sprintf(msg, "%d", out_buffer);
-                sendto(sockfd, msg,  strlen(msg), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                out_buffer[0] = move(name, type);
+                //sprintf(msg, "%d", out_buffer);
+                sendto(sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                 t_active--;
                 pthread_cond_signal(&var);
                 break;
@@ -163,9 +163,15 @@ void *applyCommands(){
                 while(t_active != 0) pthread_cond_wait(&var, &mutex);
                 printf("Print to: %s\n", name);
                 file_out = fopen(name, MODE_FILE_WRITE);
+                if (file_out == NULL) {
+                    printf("Erro: unable to open file");
+                    out_buffer[0] = FAIL;
+                    sendto(sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                    break;
+                }
                 print_tecnicofs_tree(file_out);
-                sprintf(msg, "%d", 0);
-                sendto(sockfd, msg,  strlen(msg), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
+                //sprintf(msg, "%d", 0);
+                sendto(sockfd, out_buffer, sizeof(out_buffer), 0, (struct sockaddr *)&args->client_addr, args->addrlen);
                 fclose(file_out);
 
                 pthread_cond_broadcast(&var);
@@ -175,12 +181,13 @@ void *applyCommands(){
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
-                free(msg);
+                //free(msg);
                 exit(EXIT_FAILURE);
             }
         }
         free(command);
-        free(msg);
+        //free(msg);
+        free(out_buffer);
     }
     return NULL;
 }
