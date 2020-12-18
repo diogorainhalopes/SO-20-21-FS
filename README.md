@@ -22,3 +22,8 @@ DRAM, beneficiando assim do melhor desempenho desta memória, em comparação co
   Pode também aproveitar as novas tecnologias de memória persistente quando usado em máquinas
 em que estas estejam disponíveis (como, por exemplo, os recentes DIMMs com tecnologia Intel
 Optane DC).
+
+
+PS: No teste prático foi adicionada a possibilidade de no lançamento do server (E_3/Server/main.c) 
+existir um quarto argumento que faz com que o server entre em sleep pela quantidade de tempo dada no input.
+Retirar caso surjam problemas.
