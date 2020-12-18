@@ -1,9 +1,9 @@
-# istfortknox
-IST - Projeto de Sistemas Operativos - 20/21
+# SO-20-21-FS
+_IST - Projeto de Sistemas Operativos - 20/21_
 
-  Visão global do projeto
+  *Visão global do projeto
 O objetivo final do projeto é desenvolver um sistema de ficheiros (File System, FS) em modo utilizador
-(user-level) e que mantém os seus conteúdos em memória primária, chamado TecnicoFS.
+(user-level) e que mantém os seus conteúdos em memória primária, chamado TecnicoFS.*
 
 Os FS em modo utilizador são uma alternativa que tem vindo a ganhar relevância recentemente, já
 que permitem o desenvolvimento rápido de FS facilmente portáveis e com forte isolamento de falhas,
