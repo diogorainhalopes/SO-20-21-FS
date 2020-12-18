@@ -1,4 +1,24 @@
 # istfortknox
-IST
+IST - Projeto de Sistemas Operativos - 20/21
 
-Well 😤, the idea 💭 you 👈👉😐 described 👅, as described 👅, was described 🗣💬🤔, with the description 👇🙌, of the description 👿 that you 👈 gave 🎁, henceforth, moreover, nonetheless, is as aforementioned, possibly 🤔 and certainly 🔗, but 🍑 to the extent 👆 of uncertainty ❔, without ❌🚫 initial 💰 description 👿 thereof 🙈, by whom said 💬🙈 idea 💡 has been passed 💯, unbeknownst 🤩, by which those whose 🌄 description 👇🙌 is of or without 🚫, whether 🌩🌧 be quests 🎰🐴, items 🛍, ships 🚢, as described 🗣💬🤔, taxes 🛂, by which of the enforcement 👊 to whomst 🧐🤙 whichever 🔄 pension is to be brought ✌ fourth 4️⃣ amongst 💩🙋 the likes 💖 of whom it shall 🐚 attribute 👮🏻, and the longevity 📊 of the ideas 💡🧠🤔 described 👅, which, of said 🗣💪 ideas 💭, those which have description 👇🙌 of greatly 👍 described 🗣💬🤔 attributes 😳, of course 🏎 only to serve 😡 or benefit ✅ the likes 😄 of 'elootists' thereof 🙈 henceforth, however 🖐, instead 🚔, rather 👉 than such, of, it is greatly 🇬🇧 described 🗣💬🤔 for such, and truly 💯 because of which, for such an idea 💡 of inherent and thorough 😔😖 description 👿 of described 👅 details 👾👌💇🏼 and attributes 🤨, such that an idea 💡 of which the likes 💖 of which can be attributed to the description 👿 of whom by over 🔁 transcends 😂 the niche 👩‍👩‍👧‍👦, transpiring into trans-confidentiality interconnected 🔗😤 complicit compliance 👽💨 of conceptualized convoluted contributions 🔝 to the description 👇🙌 of aforementioned described 👅 discretionary 🈶 nature 🍃🌿 of detailed descriptions 👇🙌 by which these ideas 💡 are put 😏 forth ➡.
+  Visão global do projeto
+O objetivo final do projeto é desenvolver um sistema de ficheiros (File System, FS) em modo utilizador
+(user-level) e que mantém os seus conteúdos em memória primária, chamado TecnicoFS.
+
+Os FS em modo utilizador são uma alternativa que tem vindo a ganhar relevância recentemente, já
+que permitem o desenvolvimento rápido de FS facilmente portáveis e com forte isolamento de falhas,
+tal como será discutido nas aulas teóricas durante o semestre. 
+  Num FS em modo utilizador, as
+funcionalidades do FS são oferecidas num processo servidor (que, naturalmente, corre em modo
+utilizador). 
+  Outros processos podem chamar funções do FS através de pedidos ao núcleo do Sistema
+Operativo, que, por sua vez, encaminha esses pedidos ao processo servidor do FS através de um canal
+de comunicação estabelecido com este. Posteriormente, o retorno da função é devolvido ao cliente
+invocado pela via inversa.
+  Ao contrário de FS tradicionais, que guardam a informação em blocos (e.g., num disco magnético ou
+SSD), o TecnicoFS é desenhado para armazenar o conteúdo dos seus ficheiros e diretorias em memória
+primária. Pode, por exemplo, ser usado para manter um FS temporário, não persistente, em memória
+DRAM, beneficiando assim do melhor desempenho desta memória, em comparação com disco/SSD.
+  Pode também aproveitar as novas tecnologias de memória persistente quando usado em máquinas
+em que estas estejam disponíveis (como, por exemplo, os recentes DIMMs com tecnologia Intel
+Optane DC).
