@@ -1,5 +1,5 @@
 # SO-20-21-FS
-_IST - Projeto de Sistemas Operativos - 20/21_
+_IST - Projeto de Sistemas Operativos - 20/21 LEIC-A_
 
   *Visão global do projeto
 O objetivo final do projeto é desenvolver um sistema de ficheiros (File System, FS) em modo utilizador
