@@ -3,9 +3,7 @@ c fruits d
 c fruits/apple f 
 c fruits/orange f 
 c fruits/banana f 
-c fruits/grape f
-c fruits/kiwi f
-c fruits/coco f
+c fruits/grape f 
 # error: create again
 c fruits d
 l fruits/apple
@@ -17,8 +15,3 @@ d fruits/grape
 d fruits/grape
 l fruits/grape
 l fruits
-c fruits2 d
-c fruits2/melao f
-c fruits/berry f
-m fruits/berry fruits/A
-m fruits/apple fruits/B

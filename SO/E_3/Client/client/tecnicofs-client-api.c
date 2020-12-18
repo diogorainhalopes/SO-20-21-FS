@@ -13,19 +13,18 @@
 int sockfd;
 socklen_t servlen, clilen;
 struct sockaddr_un serv_addr, client_addr;
-int buffer[10];
+int buffer;
 char *server;
-
+char client_name[1024];
 
 void dg_cli(int sockfd, char* out_buffer, int c) {
-    bzero(buffer, 10);
     if (sendto(sockfd, out_buffer, c+1, 0, (struct sockaddr *) &serv_addr, servlen) < 0) {
         printf("client: sendto error, unable to connect to %s\n", serv_addr.sun_path);
         exit(EXIT_FAILURE);
     }
-    if (recvfrom(sockfd, buffer, sizeof(buffer), 0, 0, 0) < 0) {
+    if (recvfrom(sockfd, &buffer, sizeof(buffer), 0, 0, 0) < 0) {
         printf("client: recvfrom error, unable to connect to %s\n", serv_addr.sun_path);
-        printf("RETORNO %d\n", buffer[0]);
+        printf("RETORNO %d\n", buffer);
         exit(EXIT_FAILURE);
     }
 }
@@ -53,7 +52,7 @@ int tfsCreate(char *filename, char nodeType) {
     int c;
     c = sprintf(out_buffer, "c %s %c", filename, nodeType);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return buffer;
 }
 
 int tfsDelete(char *path) {
@@ -61,7 +60,7 @@ int tfsDelete(char *path) {
     int c;
     c = sprintf(out_buffer, "d %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return buffer;
 }
 
 int tfsMove(char *from, char *to) {
@@ -69,7 +68,7 @@ int tfsMove(char *from, char *to) {
     int c;
     c = sprintf(out_buffer, "m %s %s", from, to);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return buffer;
 }
 
 int tfsLookup(char *path) {
@@ -77,7 +76,7 @@ int tfsLookup(char *path) {
     int c;
     c = sprintf(out_buffer, "l %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return buffer;
 }
 
 int tfsPrint(char *path) {
@@ -85,12 +84,12 @@ int tfsPrint(char *path) {
     int c;
     c = sprintf(out_buffer, "p %s", path);
     dg_cli(sockfd, out_buffer, c);
-    return buffer[0];
+    return buffer;
 }
 
 int tfsMount(char * sockPath) {
-    char client_name[1024];
-    sprintf(client_name, "%s%d", "/tmp/client", getpid());
+    
+    sprintf(client_name, "/tmp/client%d", getpid());
 
     if ((sockfd = socket(AF_UNIX, SOCK_DGRAM, 0)) < 0) {
         printf("client: can't open socket %d\n", sockfd);  
@@ -98,22 +97,12 @@ int tfsMount(char * sockPath) {
     }
     unlink(client_name); 
     clilen = setSockAddrUn(client_name, &client_addr); 
-    /*
-    bzero((char *) &client_addr, sizeof(client_addr));
-    client_addr.sun_family = AF_UNIX;
-    strcpy(client_addr.sun_path, client_name);
-    clilen = sizeof(client_addr.sun_family) + strlen(client_addr.sun_path);
-*/
+
     if (bind(sockfd, (struct sockaddr *) &client_addr, clilen) < 0) {
         printf("client: bind error\n");
         return -1;
     }
-/*
-    bzero((char *) &serv_addr, sizeof(serv_addr));
-    serv_addr.sun_family = AF_UNIX;
-    strcpy(serv_addr.sun_path, sockPath);
-    servlen = sizeof(serv_addr.sun_family) + strlen(serv_addr.sun_path);
-*/
+
     servlen = setSockAddrUn(sockPath, &serv_addr);  
     if (servlen == 0) {
         printf("wrong server address");
@@ -122,10 +111,10 @@ int tfsMount(char * sockPath) {
     return 0;
 }
 
-int tfsUnmount(char* argv[]) {
+int tfsUnmount() {
   close(sockfd);
-  //unlink(argv[2]);
-  return -1;
+  unlink(client_name);
+  return 0;
 }
 
 

@@ -10,6 +10,6 @@ int tfsLookup(char *path);
 int tfsMove(char *from, char *to);
 int tfsPrint(char *path);
 int tfsMount(char* serverName);
-int tfsUnmount(char* argv[]);
+int tfsUnmount();
 
 #endif /* CLIENT_H */

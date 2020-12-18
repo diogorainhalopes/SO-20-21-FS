@@ -3,7 +3,7 @@
 
 CC   = gcc
 LD   = gcc
-CFLAGS =-pthread -Wall -std=gnu99 -I../
+CFLAGS =-pthread -Wall -std=gnu99 -I../ -g
 LDFLAGS=-lm -lpthread
 
 # A phony target is one that is not really the name of a file

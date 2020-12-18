@@ -1,4 +1,0 @@
-c fruits f
-c apple f 
-c orange f 
-c banana f 
