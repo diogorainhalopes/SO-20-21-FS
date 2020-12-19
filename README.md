@@ -26,4 +26,4 @@ Optane DC).
 
 PS: No teste prático foi adicionada a possibilidade de no lançamento do server (E_3/Server/main.c) 
 existir um quarto argumento que faz com que o server entre em sleep pela quantidade de tempo dada no input.
-Retirar caso surjam problemas.
+Retirar caso surjam problemas. (SO/E_3/Server/main.c lines 170-176)
